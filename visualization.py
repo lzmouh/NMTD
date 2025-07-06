@@ -1,13 +1,15 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle, Circle, Arc, Wedge
+from matplotlib.patches import Arc, Rectangle, Circle, Wedge
 import numpy as np
+from config import INCH_TO_METER
 
-def show_visualization(config):
+def show_visualization():
+    config = st.session_state["config"]
     layer_data = config["layer_data"]
     Z_fluid = config["Z_fluid"]
     defect_type = config["defect_type"]
-    defect_layer = config["defect_layer"] - 1  # zero-based
+    defect_layer = config["defect_layer"] - 1  # convert to zero-index
     total_thickness = config.get("total_thickness", 1.0)
     cmap = plt.get_cmap("tab20")
 
