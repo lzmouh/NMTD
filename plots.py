@@ -66,7 +66,7 @@ def show_plots():
         fig.add_vline(x=t, line_dash="dot", line_color="gray")
     fig.add_vline(x=TT_d, line_dash="dash", line_color="blue",
                   annotation_text=f"TT_fluid={TT_d:.2f} µs")
-    fig.update_layout(title="🟢 A-Scan (Time Domain)",
+    fig.update_layout(title="🟢 Time Domain Response",
                       xaxis_title="Time (µs)", yaxis_title="Amplitude",
                       hovermode="x unified")
     st.plotly_chart(fig, use_container_width=True)
@@ -81,7 +81,7 @@ def show_plots():
     if show_perfect and superpose:
         fig2.add_trace(go.Scatter(x=freqs[:len(freqs)//2], y=fft_p[:len(freqs)//2],
                                   name="Perfect Pipe", line=dict(dash='dash')))
-    fig2.update_layout(title="🔵 Frequency Domain",
+    fig2.update_layout(title="🔵 Frequency Domain Response",
                        xaxis_title="Frequency (Hz)", yaxis_title="Magnitude")
     st.plotly_chart(fig2, use_container_width=True)
 
