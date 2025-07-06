@@ -5,67 +5,48 @@ from simulator import show_simulator
 from plots import show_plots
 from visualization import show_visualization
 from about import show_about
+from streamlit_option_menu import option_menu
 
-# Inject custom CSS
-with open("style.css") as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+st.set_page_config(page_title="NMTD App", layout="wide")
 
-st.set_page_config(page_title="NMTD Simulator", layout="wide")
+# Sidebar navigation
+with st.sidebar:
+    page = option_menu(
+        menu_title="🧪 NMTD Navigation",
+        options=["Simulator", "Plots", "Visualization", "About"],
+        icons=["cpu", "bar-chart-line", "bounding-box", "info-circle"],
+        default_index=0,
+        styles={
+            "container": {
+                "padding": "5px",
+                "background-color": "#f0f2f6",
+                "width": "100%",
+            },
+            "icon": {
+                "color": "black",
+                "font-size": "18px"
+            },
+            "nav-link": {
+                "font-size": "18px",
+                "text-align": "left",
+                "margin": "5px",
+                "padding": "10px",
+                "border-radius": "6px",
+                "--hover-color": "#d3d3d3"
+            },
+            "nav-link-selected": {
+                "background-color": "#a9a9a9",
+                "color": "white"
+            }
+        }
+    )
 
-# Session state initialization
-if "config" not in st.session_state:
-    st.session_state["config"] = json.loads(json.dumps(DEFAULT_CONFIG))  # Deep copy
-
-# Elegant button menu
-
-# Define pages
-PAGES = {
-    "home": "🏠 Home",
-    "simulation": "🔬 Simulation",
-    "plots": "📊 Plots",
-    "visualization": "🧭 Visualization",
-    "about": "ℹ️ About"
-}
-
-# Track selected page in session state
-if "page" not in st.session_state:
-    st.session_state.page = "home"
-
-def nav_button(name, key):
-    active = (st.session_state.page == key)
-    style = f"""
-    <style>
-    .nav-button-{key} {{
-        background-color: {'#4CAF50' if active else '#f0f2f6'};
-        color: {'white' if active else '#000000'};
-        padding: 0.75em 1em;
-        text-align: left;
-        border: none;
-        border-radius: 0.5em;
-        width: 100%;
-        font-size: 1.1em;
-        margin-bottom: 0.3em;
-        cursor: pointer;
-    }}
-    </style>
-    """
-    st.markdown(style, unsafe_allow_html=True)
-    if st.sidebar.button(name, key=f"navbtn_{key}"):
-        st.session_state.page = key
-
-# Render sidebar navigation
-st.sidebar.markdown("### 📘 Menu")
-for key, label in PAGES.items():
-    nav_button(label, key)
-
-# Page content dispatcher
-
-if st.session_state.page == "Simulator":
+# Page dispatch
+if page == "Simulator":
     show_simulator()
-elif st.session_state.page == "Plots":
+elif page == "Plots":
     show_plots()
-elif st.session_state.page == "Visualization":
+elif page == "Visualization":
     show_visualization()
-elif st.session_state.page == "About":
+elif page == "About":
     show_about()
-
