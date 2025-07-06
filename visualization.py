@@ -206,7 +206,7 @@ def show_visualization():
     
     # Sensor Annotation
     r_sensor = r_inner - pad_gap  # where pads are drawn
-    angle = 270
+    angle = -10
     rad = np.deg2rad(angle)
     x = r_sensor * np.cos(rad)
     y = r_sensor * np.sin(rad)
