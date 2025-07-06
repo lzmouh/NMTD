@@ -15,7 +15,7 @@ def show_visualization():
     cmap = plt.get_cmap("tab20")
     
     # --------- 1) Horizontal Cross Section (FULL WIDTH) ---------
-    fig1 = plt.figure(figsize=(14, 3))
+    fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
 
     y = 0.2
@@ -72,7 +72,7 @@ def show_visualization():
     st.pyplot(fig1)
 
     # --------- 2) Top View Drawing ---------
-    fig2 = plt.figure(figsize=(14, 4))
+    fig2 = plt.figure(figsize=(5, 5))
     ax2 = fig2.add_subplot(111)
 
     pipe_id = 6.0
