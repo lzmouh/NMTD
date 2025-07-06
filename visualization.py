@@ -15,7 +15,7 @@ def show_visualization():
 
    # --------- 1) Horizontal Cross Section (FULL WIDTH) ---------
    fig1 = plt.figure(figsize=(16, 3))
-   ax1 = fig1.add_subplot(111)
+    ax1 = fig1.add_subplot(111)
 
    y = 0.2
    H = 0.6
