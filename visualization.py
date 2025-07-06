@@ -58,10 +58,10 @@ def show_visualization():
         if defect_type == "Delamination" and i == defect_layer:
             ax1.add_patch(Rectangle((x - 0.01, y), 0.02, H,
                                     color='white', ec='red', lw=2))
-            ax1.text(x, y + H + 0.05, "Delam.", color='red', fontsize=8, ha='left')
+            ax1.text(x, y + H + 0.05, "Delam.", color='red', fontsize=7, ha='left')
         elif defect_type == "Crack" and i == defect_layer:
             ax1.plot([x, x + W], [y + H / 2, y + H / 2], 'k--', lw=2)
-            ax1.text(x + W / 2, y - 0.1, "Crack", ha='center', color='black', fontsize=8)
+            ax1.text(x + W / 2, y - 0.1, "Crack", ha='center', color='black', fontsize=7)
         x += W
 
     ax1.set_xlim(0, x + 1)
@@ -72,7 +72,7 @@ def show_visualization():
     st.pyplot(fig1)
 
     # --------- 2) Top View Drawing ---------
-    fig2 = plt.figure(figsize=(4, 4))
+    fig2 = plt.figure(figsize=(14, 4))
     ax2 = fig2.add_subplot(111)
 
     pipe_id = 6.0
