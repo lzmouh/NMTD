@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, Circle, Arc, Wedge
 import numpy as np
 
-def draw_visualization(config):
+def show_visualization(config):
     layer_data = config["layer_data"]
     Z_fluid = config["Z_fluid"]
     defect_type = config["defect_type"]
