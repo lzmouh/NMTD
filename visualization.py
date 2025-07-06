@@ -25,26 +25,26 @@ def show_visualization():
     # Tool Body
     W_tool = 0.25
     ax1.add_patch(Rectangle((x, y), W_tool, H, color='gray'))
-    ax1.text(x + W_tool / 2, y + H + 0.05, "Tool Body", ha='center')
+    ax1.text(x + W_tool / 2, y + H + 0.05, "Tool Body", fontsize=7, ha='center')
     x += W_tool
 
     # Arm + Fluid
     W_arm = 0.2
     ax1.add_patch(Rectangle((x, y), W_arm, H, color='skyblue'))
     ax1.add_patch(Rectangle((x, y + H / 2 - 0.05), W_arm, 0.1, color='black'))
-    ax1.text(x + W_arm / 2, y + H + 0.05, "Fluid + Arm", ha='center')
+    ax1.text(x + W_arm / 2, y + H + 0.05, "Fluid + Arm", fontsize=7, ha='center')
     x += W_arm
 
     # Sensor
     W_sensor = 0.15
     ax1.add_patch(Rectangle((x, y), W_sensor, H, color='red'))
-    ax1.text(x + W_sensor / 2, y + H + 0.05, "Sensor", ha='center')
+    ax1.text(x + W_sensor / 2, y + H + 0.05, "Sensor", fontsize=7, ha='center')
     x += W_sensor
 
     # Fluid Gap
     W_gap = 0.1
     ax1.add_patch(Rectangle((x, y), W_gap, H, color='skyblue'))
-    ax1.text(x + W_gap / 2, y + H + 0.05, f"Gap\nZ={Z_fluid:.2f}", ha='center')
+    ax1.text(x + W_gap / 2, y + H + 0.05, f"Gap\nZ={Z_fluid:.2f}", fontsize=7, ha='center')
     x += W_gap
 
     # Pipe Layers
@@ -67,5 +67,5 @@ def show_visualization():
     ax1.set_xlim(0, x + 0.1)
     ax1.set_ylim(0, y + H + 0.1)
     ax1.axis('off')
-    fig1.suptitle("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers", fontsize=8)
+    fig1.suptitle("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers", fontsize=12)
     st.pyplot(fig1, use_container_width=True)
