@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from scipy.fft import fft, fftfreq
 from io import BytesIO
-from constants import INCH_TO_METER, DEFAULT_VELOCITY
+from config import INCH_TO_METER, DEFAULT_VELOCITY
 
 def simulate(layer_data, Z_fluid, fluid_density, defect_type=None, defect_layer=None):
     gap_m = 0.1 * INCH_TO_METER  # fixed gap
