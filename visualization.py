@@ -15,7 +15,7 @@ def show_visualization():
     cmap = plt.get_cmap("tab20")
     
     # --------- 1) Horizontal Cross Section (FULL WIDTH) ---------
-    fig1 = plt.figure(figsize=(14, 4))
+    fig1 = plt.figure(figsize=(18, 4))
     ax1 = fig1.add_subplot(111)
 
     y = 0.2
