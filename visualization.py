@@ -72,7 +72,7 @@ def show_visualization():
     st.pyplot(fig1)
 
     # --------- 2) Top View Drawing ---------
-    fig2 = plt.figure(figsize=(1, 1))
+    fig2 = plt.figure(figsize=(4, 4))
     ax2 = fig2.add_subplot(111)
 
     pipe_id = 6.0
