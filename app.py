@@ -25,6 +25,6 @@ if page == "Simulator":
 elif page == "Plots":
     show_plots()
 elif page == "Visualization":
-    show_visualization()
+    show_visualization(config)
 elif page == "About":
     show_about()
