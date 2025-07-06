@@ -7,7 +7,7 @@ def show_simulator():
 
     config = st.session_state["config"]
     # --- Initialize default config if missing ---
-    if "config" not in st.session_state or not st.session_state["config"]:
+    if "config" not in st.session_state or not st.session_state.get("config"):
         st.session_state["config"] = DEFAULT_CONFIG.copy()
 
     config = st.session_state["config"]
