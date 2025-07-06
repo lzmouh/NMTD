@@ -98,8 +98,3 @@ def show_plots():
     ax.set_title("A-Scan Export")
     ax.legend()
     ax.grid(True)
-
-    buf = BytesIO()
-    export_fig.savefig(buf, format="png")
-    st.download_button("📥 Download A-Scan Plot (PNG)", data=buf.getvalue(),
-                       file_name="ascans_plot.png", mime="image/png")
