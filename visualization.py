@@ -71,7 +71,7 @@ def show_visualization():
     st.pyplot(fig1, use_container_width=True)
 
     # --------- 2) Top View Drawing ---------
-    fig2 = plt.figure(figsize=(3, 3))
+    fig2 = plt.figure(figsize=(6, 6))
     ax2 = fig2.add_subplot(111)
 
     pipe_id = 6.0
@@ -138,7 +138,7 @@ def show_visualization():
         r_delam = r_inner + sum(layer_data[i][1] for i in range(defect_layer))
         delam_ring = Wedge(center=(0, 0),
                            r=r_delam + 0.01,  # thin white outer ring
-                           theta1=270,
+                           theta1=225,
                            theta2=315,
                            width=0.05,
                            facecolor='white',
