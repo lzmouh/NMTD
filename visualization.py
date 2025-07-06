@@ -15,7 +15,7 @@ def show_visualization():
     cmap = plt.get_cmap("tab20")
     
     # --------- 1) Horizontal Cross Section (FULL WIDTH) ---------
-    fig1 = plt.figure(figsize=(16, 3))
+    fig1 = plt.figure(figsize=(20, 3))
     ax1 = fig1.add_subplot(111)
 
     y = 0.2
@@ -69,7 +69,7 @@ def show_visualization():
     ax1.axis('off')
     ax1.set_title("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers")
 
-    st.pyplot(fig1, use_container_width=True)
+    st.pyplot(fig1)
 
     # --------- 2) Top View Drawing ---------
     fig2 = plt.figure(figsize=(6, 6))
