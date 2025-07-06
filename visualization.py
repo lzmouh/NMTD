@@ -15,7 +15,7 @@ def show_visualization():
     cmap = plt.get_cmap("tab20")
     
     # --------- 1) Horizontal Cross Section (FULL WIDTH) ---------
-    fig1 = plt.figure(figsize=(18, 4))
+    fig1 = plt.figure(figsize=(12, 4))
     ax1 = fig1.add_subplot(111)
 
     y = 0.2
@@ -64,8 +64,8 @@ def show_visualization():
             ax1.text(x + W / 2, y - 0.1, "Crack", ha='center', color='black', fontsize=7)
         x += W
 
-    ax1.set_xlim(0, x + 1)
-    ax1.set_ylim(0, y + H + 0.4)
+    #ax1.set_xlim(0, x + 1)
+    #ax1.set_ylim(0, y + H + 0.4)
     ax1.axis('off')
     fig1.suptitle("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers", fontsize=8)
     st.pyplot(fig1, use_container_width=True)
