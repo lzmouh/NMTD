@@ -1,0 +1,12 @@
+/* Sidebar buttons */
+section[data-testid="stSidebar"] button {
+    background-color: #003366;
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+section[data-testid="stSidebar"] button:hover {
+    background-color: #005599;
+}
