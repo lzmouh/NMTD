@@ -85,16 +85,3 @@ def show_plots():
                        xaxis_title="Frequency (Hz)", yaxis_title="Magnitude")
     st.plotly_chart(fig2, use_container_width=True)
 
-    st.success(f"Simulation complete. TT_fluid = {TT_d:.2f} µs")
-
-    # --- Export button for raw signal plot ---
-    export_fig = plt.figure(figsize=(10, 4))
-    ax = export_fig.add_subplot(111)
-    ax.plot(t_d, s_d, label="Defective Pipe", color='red')
-    if show_perfect and superpose:
-        ax.plot(t_p, s_p, label="Perfect Pipe", linestyle='--', color='green')
-    ax.set_xlabel("Time (µs)")
-    ax.set_ylabel("Amplitude")
-    ax.set_title("A-Scan Export")
-    ax.legend()
-    ax.grid(True)
