@@ -5,7 +5,6 @@ from config import fluid_impedance_db, default_densities, DEFAULT_CONFIG
 def show_simulator():
     st.title("🔍 NMTD Ultrasonic Response Simulator")
 
-    config = st.session_state["config"]
     # --- Initialize default config if missing ---
     if "config" not in st.session_state or not st.session_state.get("config"):
         st.session_state["config"] = DEFAULT_CONFIG.copy()
