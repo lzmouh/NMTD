@@ -227,7 +227,7 @@ def show_visualization():
     ax2.set_xlim(-r_current - 2, r_current + 2)
     ax2.set_ylim(-r_current - 2, r_current + 2)
     ax2.axis('off')
-    ax2.set_title("Top View: Tool & Pads inside Multilayer Pipe")
+    ax2.set_title("Top View: Tool & Pads inside Multilayer Pipe", fontsize=12, y=1.02)
 
     st.pyplot(fig2)
 
