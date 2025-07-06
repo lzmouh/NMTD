@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from scipy.fft import fft, fftfreq
 from io import BytesIO
