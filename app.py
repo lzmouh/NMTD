@@ -17,14 +17,48 @@ if "config" not in st.session_state:
     st.session_state["config"] = json.loads(json.dumps(DEFAULT_CONFIG))  # Deep copy
 
 # Elegant button menu
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("📘 Go to", ["Simulator", "Plots", "Visualization", "About"])
 
-if page == "Simulator":
-    show_simulator()
-elif page == "Plots":
-    show_plots()
-elif page == "Visualization":
-    show_visualization()
-elif page == "About":
-    show_about()
+# Define pages
+PAGES = {
+    "home": "🏠 Home",
+    "simulation": "🔬 Simulation",
+    "plots": "📊 Plots",
+    "visualization": "🧭 Visualization",
+    "about": "ℹ️ About"
+}
+
+# Track selected page in session state
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+def nav_button(name, key):
+    active = (st.session_state.page == key)
+    style = f"""
+    <style>
+    .nav-button-{key} {{
+        background-color: {'#4CAF50' if active else '#f0f2f6'};
+        color: {'white' if active else '#000000'};
+        padding: 0.75em 1em;
+        text-align: left;
+        border: none;
+        border-radius: 0.5em;
+        width: 100%;
+        font-size: 1.1em;
+        margin-bottom: 0.3em;
+        cursor: pointer;
+    }}
+    </style>
+    """
+    st.markdown(style, unsafe_allow_html=True)
+    if st.sidebar.button(name, key=f"navbtn_{key}"):
+        st.session_state.page = key
+
+# Render sidebar navigation
+st.sidebar.markdown("### 📘 Navigation")
+for key, label in PAGES.items():
+    nav_button(label, key)
+
+# Page content dispatcher
+st.title(PAGES[st.session_state.page])
+st.write(f"Currently on **{st.session_state.page.upper()}** page.")
+
