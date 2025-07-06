@@ -54,11 +54,18 @@ def nav_button(name, key):
         st.session_state.page = key
 
 # Render sidebar navigation
-st.sidebar.markdown("### 📘 Navigation")
+st.sidebar.markdown("### 📘 Menu")
 for key, label in PAGES.items():
     nav_button(label, key)
 
 # Page content dispatcher
-st.title(PAGES[st.session_state.page])
-st.write(f"Currently on **{st.session_state.page.upper()}** page.")
+
+if st.session_state.page == "Simulator":
+    show_simulator()
+elif st.session_state.page == "Plots":
+    show_plots()
+elif st.session_state.page == "Visualization":
+    show_visualization()
+elif st.session_state.page == "About":
+    show_about()
 
