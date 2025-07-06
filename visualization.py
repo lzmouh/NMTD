@@ -67,7 +67,7 @@ def show_visualization():
     ax1.set_xlim(0, x + 1)
     ax1.set_ylim(0, y + H + 0.4)
     ax1.axis('off')
-    fig1.suptitle("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers", fontsize=12, y=1.02)
+    fig1.suptitle("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers", fontsize=8)
     st.pyplot(fig1, use_container_width=True)
 
     # --------- 2) Top View Drawing ---------
@@ -227,7 +227,7 @@ def show_visualization():
     ax2.set_xlim(-r_current - 2, r_current + 2)
     ax2.set_ylim(-r_current - 2, r_current + 2)
     ax2.axis('off')
-    ax2.set_title("Top View: Tool & Pads inside Multilayer Pipe", fontsize=12, y=1.02)
+    ax2.set_title("Top View: Tool & Pads inside Multilayer Pipe", fontsize=8)
 
     st.pyplot(fig2)
 
