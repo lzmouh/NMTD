@@ -226,8 +226,8 @@ def show_visualization():
                  arrowprops=dict(arrowstyle="->"), fontsize=7)
 
     ax2.set_aspect('equal')
-    ax2.set_xlim(-r_current - 2, r_current + 2)
-    ax2.set_ylim(-r_current - 2, r_current + 2)
+    ax2.set_xlim(-r_current - 3, r_current + 3)
+    ax2.set_ylim(-r_current - 3, r_current + 3)
     ax2.axis('off')
     ax2.set_title("Top View: Tool & Pads inside Multilayer Pipe", fontsize=8)
 
