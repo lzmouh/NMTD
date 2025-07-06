@@ -5,6 +5,7 @@ import numpy as np
 from config import INCH_TO_METER
 
 def show_visualization():
+    st.title("📷 Pipe and Tool Visualization")
     config = st.session_state["config"]
     layer_data = config["layer_data"]
     Z_fluid = config["Z_fluid"]
