@@ -64,8 +64,8 @@ def show_visualization():
             ax1.text(x + W / 2, y - 0.1, "Crack", ha='center', color='black', fontsize=7)
         x += W
 
-    ax1.set_xlim(0, x + 1)
-    ax1.set_ylim(0, y + H + 0.4)
+    #ax1.set_xlim(0, x + 1)
+    #ax1.set_ylim(0, y + H + 0.4)
     ax1.axis('off')
     ax1.set_title("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers")
 
