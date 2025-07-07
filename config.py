@@ -24,7 +24,7 @@ DEFAULT_CONFIG = {
     "Z_fluid": 1.48,
     "fluid_density": 1.0,
     "fluid_velocity": 1480,
-    "num_layers": 5,
+    "num_layers": 3,
     "layer_data": [["Layer 1", 0.2, 2.5], ["Layer 2", 0.2, 2.5], ["Layer 3", 0.2, 2.5]]
     "total_thickness": 0.6,
     "defect_type": "None",
