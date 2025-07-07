@@ -9,88 +9,83 @@ from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 
 
 def simulate_layer_physics(config):
-    layers = config["layer_data"]
-    Z_fluid = config["Z_fluid"] * 1e6
-    rho_fluid = config["fluid_density"] * 1000
-    defect = config["defect_type"]
-    defect_idx = config["defect_layer"] - 1
+    layers      = config["layer_data"]
+    Z_fluid     = config["Z_fluid"] * 1e6
+    rho_fluid   = config["fluid_density"] * 1000
+    defect      = config["defect_type"]
+    defect_idx  = config["defect_layer"] - 1
 
-    # --- Time axis ---
-    fs = 100e6  # Hz
+    # Time axis
+    fs    = 100e6
     t_max = 25e-6
-    t = np.linspace(0, t_max, int(fs * t_max))
-    dt = t[1] - t[0]
+    t     = np.linspace(0, t_max, int(fs * t_max))
+    dt    = t[1] - t[0]
 
-    # --- Transducer pulse ---
-    f0 = 1e6
-    pulse = np.sin(2 * np.pi * f0 * t) * np.exp(-((t - 3 / f0) ** 2) / (0.2e-6) ** 2)
-    P = fft(pulse)
+    # Transducer pulse
+    f0    = 1e6
+    pulse = np.sin(2*np.pi*f0*t) * np.exp(-((t-3/f0)**2)/(0.2e-6)**2)
+    P     = fft(pulse)
     freqs = fftfreq(len(t), dt)
 
-    # --- Fluid gap ---
-    gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
-    c_fluid = Z_fluid / rho_fluid
-    TT_fluid = 2 * gap_m / c_fluid * 1e6  # µs
+    # Fluid gap echo
+    gap_m    = DEFAULT_GAP_INCH * INCH_TO_METER
+    c_fluid  = Z_fluid / rho_fluid
+    TT_fluid = 2 * gap_m / c_fluid * 1e6
 
     A_scan = np.zeros_like(t)
     A_scan += np.interp(t, t - TT_fluid, pulse, left=0, right=0)
 
     results = []
     Z_prev = Z_fluid
-    amp = 1.0
-    depth = gap_m
+    amp    = 1.0
+    depth  = gap_m
 
     for i, (label, thick_in, Z_mrayl) in enumerate(layers):
         thickness = thick_in * INCH_TO_METER
-        Z_curr = Z_mrayl * 1e6
+        Z_curr    = Z_mrayl * 1e6
 
-        # --- Dispersion model ---
-        base_velocity = DEFAULT_VELOCITY
-        dispersion_coeff = 0.5  # velocity decrease per MHz ***** 0.01
-        c_layer = base_velocity - dispersion_coeff * (np.abs(freqs) / 1e6)
-        c_layer = np.clip(c_layer, 500, base_velocity)
+        # ——————————————————————————
+        # EXAGGERATED LOW-DECAY PARAMETERS
+        alpha0 = 0.01        # was 0.5+0.1*i, now tiny
+        n      = 0.1         # was 1.2+0.05*i, now small
+        alpha_f = alpha0 * (np.abs(freqs)/1e6)**n * 100  # dB/m
+        H       = 10**(-alpha_f * thickness / 20)
 
-        # --- Attenuation model ---
-        alpha0 = 0.5 + 0.9 * i    # alpha0 = 0.5 + 0.1 * i
-        n = 1.2 + 0.5 * i 
-        alpha_f = alpha0 * (np.abs(freqs) / 1e6) ** n * 100  # dB/m
-        H = 10 ** (-alpha_f * thickness / 20)
+        # Force very high transmission
+        R = 0.01
+        T = 0.99
 
-        # --- Reflection and transmission ---
-        R = ((Z_curr - Z_prev) / (Z_curr + Z_prev)) ** 2
-        T = 1 - R
-
-        # --- Defect overrides ---
-        if defect == "Delamination" and i == defect_idx:
+        # Defect overrides (unchanged)
+        extra_delay = 0
+        if defect=="Delamination" and i==defect_idx:
             R, T = 0.7, 0.3
-            extra_delay = 0.6  # µs
-        else:
-            extra_delay = 0
-        if defect == "Crack" and i == defect_idx:
+            extra_delay = 0.6
+        elif defect=="Crack" and i==defect_idx:
             R, T = 0.5, 0.5
+        # ——————————————————————————
 
-        # --- Signal propagation ---
+        # Propagate
         P_i = P * H * T
         p_i = np.real(ifft(P_i))
         depth += thickness
-        tau = (2 * depth / base_velocity) * 1e6 + extra_delay
-        echo = R * np.interp(t, t - tau, p_i, left=0, right=0)
+        tau   = (2 * depth / DEFAULT_VELOCITY) * 1e6 + extra_delay
+        echo  = R * np.interp(t, t - tau, p_i, left=0, right=0)
         A_scan += echo
 
         results.append({
             "Layer": label,
             "Thickness (in)": thick_in,
             "Z (MRayl)": Z_mrayl,
-            "α0 (dB/cm/MHz)": round(alpha0, 2),
-            "n exponent": round(n, 2),
+            "α0 (dB/cm/MHz)": round(alpha0, 3),
+            "n exponent": round(n, 3),
             "Refl Coef": round(R, 3),
             "Trans Coef": round(T, 3),
             "Time (µs)": round(tau, 2),
-            "Amp Echo": round(R * amp, 3)
+            "Amp Echo": round(R * amp, 3),
         })
 
-        amp *= T
-        Z_prev = Z_curr
+        amp    *= T
+        Z_prev  = Z_curr
 
     df = pd.DataFrame(results)
     return t, A_scan, freqs, df, TT_fluid
