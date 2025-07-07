@@ -3,7 +3,7 @@ import json
 from config import DEFAULT_CONFIG
 from simulator import show_simulator
 from plots import show_plots
-from plot2 import show_plots
+from plot2 import show_plots2
 from visualization import show_visualization
 from about import show_about
 from streamlit_option_menu import option_menu
@@ -48,7 +48,7 @@ if page == "Simulator":
 elif page == "Plots":
     show_plots()
 elif page == "Plot2":
-    simulate_with_defects()
+    show_plots2()
 elif page == "Visualization":
     show_visualization()
 elif page == "About":
