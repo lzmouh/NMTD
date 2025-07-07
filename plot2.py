@@ -19,6 +19,12 @@ LAYERS = [
     (0.3, 2.8e6, 0.9, 1.6),
 ]
 
+t, sig = simulate_with_defects(
+        defect_type=None if def_type=="None" else def_type,
+        defect_layer=layer_idx
+    )
+    st.line_chart({"A-Scan": sig}, x=t*1e6)
+
 def simulate_with_defects(defect_type=None, defect_layer=None):
     # time-base
     fs = 100e6
