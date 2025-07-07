@@ -64,6 +64,11 @@ def simulate_layer_physics(config):
         k_disp = 0.05              # dispersion coefficient
         n_disp = 0.5               # power exponent
         c_f = c0 * (1 + k_disp * (np.abs(freqs)/1e6)**n_disp)  # velocity vs frequency
+
+
+        # reflection/transmission
+        R = ((Z_curr-Z_prev)/(Z_curr+Z_prev))**2
+        T = 1 - R
         
         # Phase delay for each frequency component (2-way travel time)
         phase_delay = 2 * thickness / c_f                  # seconds
@@ -73,11 +78,6 @@ def simulate_layer_physics(config):
         # --- Combine all effects ---
         P_i = P * H * D * T                                # Apply attenuation, dispersion, transmission
         p_i = np.real(ifft(P_i))                           # Inverse FFT to get time-domain response
-
-
-        # reflection/transmission
-        R = ((Z_curr-Z_prev)/(Z_curr+Z_prev))**2
-        T = 1 - R
 
         # defect overrides
         if defect=="Delamination" and i==defect_idx:
