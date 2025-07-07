@@ -97,5 +97,5 @@ def show_simulator():
 
     with c3:
         if st.button("🗑️ Reset to Default"):
-            st.session_state["config"] = json.loads(json.dumps(DEFAULT_CONFIG))
+            st.session_state["config"] = DEFAULT_CONFIG.copy()
             st.rerun()
