@@ -3,7 +3,7 @@ import json
 from config import DEFAULT_CONFIG
 from simulator import show_simulator
 from plots import show_plots
-from plot2 import simulate_with_defects
+from plot2 import show_plots
 from visualization import show_visualization
 from about import show_about
 from streamlit_option_menu import option_menu
