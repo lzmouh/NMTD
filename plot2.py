@@ -36,49 +36,56 @@ def simulate_layer_physics(config):
     amp = 1.0
     depth = gap_m
 
-    for i, (label, thick_in, Z_mrayl) in enumerate(layers):
-        thick_m = thick_in * INCH_TO_METER
-        Z_curr = Z_mrayl * 1e6
+    for i, layer in enumerate(layers):
+    if len(layer) == 3:
+        label, thick_in, Z_mrayl = layer
+    else:
+        label = f"Layer {i+1}"
+        thick_in = layer[0] if len(layer) > 0 else 0.2
+        Z_mrayl = layer[1] if len(layer) > 1 else 2.5
 
-        alpha0 = 0.5 + 0.1 * i
-        n = 1.2 + 0.05 * i
-        alpha_f = alpha0 * (np.abs(freqs) / 1e6) ** n * 100  # dB/m
-        H = 10 ** (-alpha_f * thick_m / 20)
+    thick_m = thick_in * INCH_TO_METER
+    Z_curr = Z_mrayl * 1e6
 
-        R = ((Z_curr - Z_prev) / (Z_curr + Z_prev)) ** 2
-        T = 1 - R
+    alpha0 = 0.5 + 0.1 * i
+    n = 1.2 + 0.05 * i
+    alpha_f = alpha0 * (np.abs(freqs) / 1e6) ** n * 100  # dB/m
+    H = 10 ** (-alpha_f * thick_m / 20)
 
-        extra_delay = 0
-        if defect == "Delamination" and i == defect_idx:
-            R, T = 0.7, 0.3
-            extra_delay = 0.6  # µs
-        elif defect == "Crack" and i == defect_idx:
-            R, T = 0.5, 0.5
+    R = ((Z_curr - Z_prev) / (Z_curr + Z_prev)) ** 2
+    T = 1 - R
 
-        P_i = P * H * T
-        p_i = np.real(ifft(P_i))
+    extra_delay = 0
+    if defect == "Delamination" and i == defect_idx:
+        R, T = 0.7, 0.3
+        extra_delay = 0.6
+    elif defect == "Crack" and i == defect_idx:
+        R, T = 0.5, 0.5
 
-        depth += thick_m
-        tau = (2 * depth / DEFAULT_VELOCITY) * 1e6 + extra_delay
+    P_i = P * H * T
+    p_i = np.real(ifft(P_i))
 
-        echo = R * np.interp(t, t - tau, p_i, left=0, right=0)
-        A_scan += echo
+    depth += thick_m
+    tau = (2 * depth / DEFAULT_VELOCITY) * 1e6 + extra_delay
 
-        results.append({
-            "Layer": label,
-            "Thickness (in)": thick_in,
-            "Z (MRayl)": Z_mrayl,
-            "α0 (dB/cm/MHz)": round(alpha0, 2),
-            "n exponent": round(n, 2),
-            "Refl Coef": round(R, 3),
-            "Trans Coef": round(T, 3),
-            "Time (µs)": round(tau, 2),
-            "Amp Echo": round(R * amp, 3),
-        })
+    echo = R * np.interp(t, t - tau, p_i, left=0, right=0)
+    A_scan += echo
 
-        amp *= T
-        Z_prev = Z_curr
+    results.append({
+        "Layer": label,
+        "Thickness (in)": thick_in,
+        "Z (MRayl)": Z_mrayl,
+        "α0 (dB/cm/MHz)": round(alpha0, 2),
+        "n exponent": round(n, 2),
+        "Refl Coef": round(R, 3),
+        "Trans Coef": round(T, 3),
+        "Time (µs)": round(tau, 2),
+        "Amp Echo": round(R * amp, 3),
+    })
 
+    amp *= T
+    Z_prev = Z_curr
+    
     df = pd.DataFrame(results)
     return t, A_scan, freqs, df, TT_fluid
 
