@@ -49,7 +49,7 @@ def simulate_response(config):
 
     return t_axis_cropped, signal_cropped, times, amps, TT_fluid
 
-def show_plots():
+def show_plots2():
     st.title("📊 Ultrasonic Simulation Results")
 
     config = st.session_state["config"]
