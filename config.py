@@ -25,8 +25,8 @@ DEFAULT_CONFIG = {
     "fluid_density": 1.0,
     "fluid_velocity": 1480,
     "num_layers": 5,
-    "layer_data": [["Layer 1", 0.2, 2.5]] * 5,
-    "total_thickness": 1.0,
+    "layer_data": [["Layer 1", 0.2, 2.5], ["Layer 2", 0.2, 2.5], ["Layer 3", 0.2, 2.5]]
+    "total_thickness": 0.6,
     "defect_type": "None",
     "defect_layer": 2
 }
