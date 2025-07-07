@@ -1,103 +1,177 @@
+# plots.py
+
 import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from scipy.fft import fft, fftfreq
-from config import INCH_TO_METER, DEFAULT_VELOCITY
+from scipy.fft import fft, fftfreq, ifft
+from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 
-def simulate_response(config):
-    layer_data = config["layer_data"]
-    Z_fluid = config["Z_fluid"]
-    fluid_density = config["fluid_density"]
-    defect_type = config["defect_type"]
-    defect_layer = config["defect_layer"] - 1  # zero-indexed
+def simulate_layer_physics(config):
+    """
+    Runs the full ultrasonic propagation simulation including:
+    • frequency-dependent dispersion c(f)
+    • per-layer attenuation and amplitude scaling
+    • reflection & transmission at each interface
+    • defect overrides for crack/delamination
+    """
+    # Unpack config
+    layers = config["layer_data"]
+    Z_fluid = config["Z_fluid"] * 1e6       # MRayl → Rayl
+    rho_fluid = config["fluid_density"]*1000
+    defect = config["defect_type"]
+    defect_idx = config["defect_layer"] - 1
 
-    gap_m = 0.1 * INCH_TO_METER
-    Z = Z_fluid * 1e6
-    rho = fluid_density * 1000
-    c = Z / rho
-    TT_fluid = 2 * gap_m / c * 1e6  # µs
+    # Time axis
+    fs = 100e6  # 100 MHz sampling
+    t_max = 20e-6
+    t = np.linspace(0, t_max, int(fs*t_max))
+    dt = t[1] - t[0]
 
-    times = [TT_fluid]
-    amps = [1.0]
+    # Generate base pulse
+    f0 = 1e6
+    pulse = np.sin(2*np.pi*f0*t) * np.exp(-((t-3/f0)**2)/(0.2e-6)**2)
+    P = fft(pulse)
+    freqs = fftfreq(len(t), dt)
+
+    # Fluid gap
+    gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
+    c_fluid = Z_fluid / rho_fluid
+    TT_fluid = 2*gap_m/c_fluid*1e6  # µs
+
+    # Prepare results list
+    results = []
+    A_scan = np.zeros_like(t)
+    # initial echo from fluid interface
+    A_scan += np.interp(t, t-TT_fluid, pulse, left=0, right=0)
+
+    Z_prev = Z_fluid
+    amp = 1.0
     depth = gap_m
 
-    for i, (_, t_in, _) in enumerate(layer_data):
-        depth += t_in * INCH_TO_METER
-        t = 2 * depth / DEFAULT_VELOCITY * 1e6
-        a = 1.0
-        if defect_type == "Delamination" and i == defect_layer:
-            t += 0.6
-            a *= 0.6
-        elif defect_type == "Crack" and i == defect_layer:
-            a *= 0.5
-        times.append(t)
-        amps.append(a)
+    # Loop through layers
+    for i, (label, thick_in, Z_mrayl) in enumerate(layers):
+        # convert units
+        thickness = thick_in * INCH_TO_METER
+        Z_curr = Z_mrayl * 1e6
+        # dispersion (unused in this basic sim, but placeholder)
+        # attenuation model
+        alpha0 = 0.5 + 0.1*i    # dB/cm/MHz, example
+        n = 1.2 + 0.05*i
+        alpha_f = alpha0 * (np.abs(freqs)/1e6)**n * 100  # dB/m
+        H = 10**(-alpha_f*thickness/20)
 
-    t_axis = np.linspace(0, max(times) + 3, 3000)
-    signal = np.zeros_like(t_axis)
-    for t, a in zip(times, amps):
-        signal += a * np.exp(-((t_axis - t) ** 2) / (2 * (0.05 ** 2)))
-    signal += 0.01 * np.random.randn(len(signal))
+        # reflection/transmission
+        R = ((Z_curr-Z_prev)/(Z_curr+Z_prev))**2
+        T = 1 - R
 
-    # Auto-crop to where signal has content
-    threshold = 0.02
-    cutoff = np.argmax(np.abs(signal[::-1]) > threshold)
-    cutoff = len(signal) - cutoff if cutoff > 0 else len(signal)
-    t_axis_cropped = t_axis[:cutoff]
-    signal_cropped = signal[:cutoff]
+        # defect overrides
+        if defect=="Delamination" and i==defect_idx:
+            R, T = 0.7, 0.3
+            # add extra delay
+            extra_delay = 0.6  # µs
+        else:
+            extra_delay = 0
+        if defect=="Crack" and i==defect_idx:
+            R, T = 0.5, 0.5
 
-    return t_axis_cropped, signal_cropped, times, amps, TT_fluid
+        # propagate
+        P_i = P * H * T
+        p_i = np.real(ifft(P_i))
+        depth += thickness
+        tau = (2*depth/DEFAULT_VELOCITY)*1e6 + extra_delay
+
+        # add reflection echo
+        echo = R * np.interp(t, t-tau, p_i, left=0, right=0)
+        A_scan += echo
+
+        # record results
+        results.append({
+            "Layer": label,
+            "Thickness (in)": thick_in,
+            "Z (MRayl)": Z_mrayl,
+            "α0 (dB/cm/MHz)": round(alpha0,2),
+            "n exponent": round(n,2),
+            "Refl Coef": round(R,3),
+            "Trans Coef": round(T,3),
+            "Time (µs)": round(tau,2),
+            "Amp Echo": round(R*amp,3),
+        })
+
+        # update for next
+        amp *= T
+        Z_prev = Z_curr
+
+    df = pd.DataFrame(results)
+    return t, A_scan, freqs, df, TT_fluid
 
 def show_plots2():
-    st.title("📊 Ultrasonic Simulation Results")
+    st.title("📊 Ultrasonic A-Scan Simulation Results")
 
+    # run simulation
     config = st.session_state["config"]
-    t_axis, signal, echo_times, echo_amps, TT_fluid = simulate_response(config)
+    t, A_scan, freqs, df_results, TT_fluid = simulate_layer_physics(config)
 
-    st.subheader("📋 Simulation Parameters Table")
-    df = pd.DataFrame(config["layer_data"], columns=["Layer", "Thickness (in)", "Z (MRayl)"])
-    df["Echo Time (µs)"] = echo_times[1:]
-    st.dataframe(df)
+    # Display constants & inputs
+    st.subheader("🔧 Simulation Inputs & Constants")
+    inputs = {
+        "Fluid": config["fluid"],
+        "Fluid Density (g/cc)": config["fluid_density"],
+        "Z_fluid (MRayl)": config["Z_fluid"],
+        "Num Layers": config["num_layers"],
+        "Total Thickness (in)": config["total_thickness"],
+        "Defect Type": config["defect_type"],
+        "Defect Layer": config["defect_layer"],
+    }
+    st.table(pd.DataFrame.from_dict(inputs, orient="index", columns=["Value"]))
 
-    show_perfect = st.checkbox("Show Perfect Pipe", True)
-    superpose = st.checkbox("Superpose Perfect and Defect", True)
+    # Layer-by-layer results table
+    st.subheader("📋 Layer-by-Layer Echo Parameters")
+    st.dataframe(df_results)
 
-    # --- Time Domain Plot ---
+    # Time-domain plot
+    st.subheader("🟢 Time-Domain A-Scan (Echo Peaks Highlighted)")
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=t_axis, y=signal, name="Defective Pipe", line=dict(color='red')))
-    for t in echo_times:
-        fig.add_vline(x=t, line_dash="dot", line_color="gray")
+    fig.add_trace(go.Scatter(x=t*1e6, y=A_scan, name="A-Scan", line=dict(color='firebrick')))
+    # mark fluid echo
     fig.add_vline(x=TT_fluid, line_dash="dash", line_color="blue",
-                  annotation_text=f"TT_fluid={TT_fluid:.2f} µs")
+                  annotation_text="Fluid Echo", annotation_position="top left")
+    # mark each layer echo
+    for idx, row in df_results.iterrows():
+        fig.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
+                      annotation_text=row["Layer"], annotation_position="top right")
     fig.update_layout(
-        title="🟢 Time-Domain A-Scan (Auto-cropped)",
         xaxis_title="Time (µs)", yaxis_title="Amplitude",
-        hovermode="x unified"
+        hovermode="x unified", height=400
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- Frequency Domain Plot ---
-    freqs = fftfreq(len(t_axis), 1e-6)
-    fft_magnitude = np.abs(fft(signal))
+    # Frequency-domain plot
+    st.subheader("🔵 Frequency-Domain Spectrum")
+    fft_vals = np.abs(fft(A_scan))
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(
-        x=freqs[:len(freqs)//2], y=fft_magnitude[:len(freqs)//2],
-        name="FFT Magnitude", line=dict(color='blue')
+        x=freqs[:len(freqs)//2]/1e6,
+        y=fft_vals[:len(freqs)//2],
+        name="FFT", line=dict(color='royalblue')
     ))
     fig2.update_layout(
-        title="🔵 Frequency Domain",
-        xaxis_title="Frequency (Hz)", yaxis_title="Magnitude",
-        hovermode="x unified"
+        xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
+        hovermode="x unified", height=300
     )
     st.plotly_chart(fig2, use_container_width=True)
 
-    # --- Optional Export ---
-    st.markdown("### 📤 Export Results")
-    export_df = df.copy()
-    export_df["TT_fluid (µs)"] = TT_fluid
-    st.download_button("📥 Download Table as CSV",
-                       data=export_df.to_csv(index=False),
-                       file_name="nmted_results.csv",
-                       mime="text/csv")
-    
+    # Export options
+    st.subheader("📤 Export Data & Plots")
+    csv = df_results.to_csv(index=False).encode()
+    st.download_button("Download Echo Table (CSV)", csv, "echo_params.csv", "text/csv")
+
+    # Export images
+    if st.button("Download Time-Domain Plot (PNG)"):
+        fig.write_image("time_domain.png")
+        with open("time_domain.png","rb") as f:
+            st.download_button("⬇ Download PNG", f.read(), "time_domain.png","image/png")
+    if st.button("Download Frequency Plot (PNG)"):
+        fig2.write_image("frequency_domain.png")
+        with open("frequency_domain.png","rb") as f:
+            st.download_button("⬇ Download PNG", f.read(), "frequency_domain.png","image/png")
