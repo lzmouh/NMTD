@@ -96,54 +96,71 @@ def simulate_layer_physics(config):
     return t, A_scan, freqs, df, TT_fluid
 
 
-def show_plots2():
-    st.title("📊 NMTD Simulation Results")
+def show_plots():
+    st.title("📊 Ultrasonic A-Scan Simulation Results")
 
+    # 1) Run the proven simulation model
     config = st.session_state["config"]
     t, A_scan, freqs, df_results, TT_fluid = simulate_layer_physics(config)
 
-    # --- Summary Table ---
-    st.subheader("🔧 Simulation Input Parameters")
-    summary = {
+    # 2) Display input summary
+    st.subheader("🔧 Inputs & Constants")
+    inputs = {
         "Fluid": config["fluid"],
-        "Fluid Density (g/cc)": config["fluid_density"],
         "Z_fluid (MRayl)": config["Z_fluid"],
-        "Fluid Velocity (m/s)": round(config["fluid_velocity"]),
         "Num Layers": config["num_layers"],
         "Total Thickness (in)": config["total_thickness"],
         "Defect Type": config["defect_type"],
-        "Defect Layer": config["defect_layer"]
+        "Defect Layer": config["defect_layer"],
     }
-    st.table(pd.DataFrame(summary.items(), columns=["Parameter", "Value"]))
+    st.table(pd.DataFrame.from_dict(inputs, orient="index", columns=["Value"]))
 
-    # --- Echo Table ---
-    st.subheader("📋 Echo Table per Layer")
+    # 3) Show the layer-by-layer echo parameters
+    st.subheader("📋 Layer Echo Table")
     st.dataframe(df_results)
 
-    # --- A-Scan ---
+    # 4) Prepare A-scan for plotting: drop the initial flat region
+    #    We'll start plotting 0.5 µs before the first echo to give context.
+    first_echo = TT_fluid
+    t_plot_mask = (t * 1e6) >= (first_echo - 0.5)
+    t_plot = t[t_plot_mask] * 1e6
+    A_plot = A_scan[t_plot_mask]
+
+    # 5) Time-domain plot
     st.subheader("🟢 Time-Domain A-Scan")
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=t * 1e6, y=A_scan, name="A-Scan", line=dict(color='firebrick')))
+    fig.add_trace(go.Scatter(x=t_plot, y=A_plot, name="A-Scan", line=dict(color="firebrick")))
+    # mark fluid echo
     fig.add_vline(x=TT_fluid, line_dash="dash", line_color="blue",
                   annotation_text="Fluid Echo", annotation_position="top left")
-
-    for idx, row in df_results.iterrows():
+    # mark each layer echo
+    for _, row in df_results.iterrows():
         fig.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
                       annotation_text=row["Layer"], annotation_position="top right")
 
-    fig.update_layout(xaxis_title="Time (µs)", yaxis_title="Amplitude",
-                      hovermode="x unified", height=400)
+    # set x-axis to start just before the first echo
+    fig.update_layout(
+        xaxis_title="Time (µs)",
+        yaxis_title="Amplitude",
+        xaxis_range=[first_echo - 0.5, max(df_results["Time (µs)"]) + 1],
+        hovermode="x unified",
+        height=400
+    )
     st.plotly_chart(fig, use_container_width=True)
 
-    # --- FFT Plot ---
-    st.subheader("🔵 Frequency-Domain Spectrum")
+    # 6) Frequency-domain plot (unchanged)
+    st.subheader("🔵 Frequency Spectrum")
     fft_vals = np.abs(fft(A_scan))
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(
-        x=freqs[:len(freqs) // 2] / 1e6,
-        y=fft_vals[:len(freqs) // 2],
-        name="FFT", line=dict(color='royalblue')
+        x=freqs[:len(freqs)//2] / 1e6,
+        y=fft_vals[:len(freqs)//2],
+        line=dict(color="navy")
     ))
-    fig2.update_layout(xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
-                       hovermode="x unified", height=300)
+    fig2.update_layout(
+        xaxis_title="Frequency (MHz)",
+        yaxis_title="Magnitude",
+        hovermode="x unified",
+        height=300
+    )
     st.plotly_chart(fig2, use_container_width=True)
