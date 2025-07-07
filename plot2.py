@@ -91,7 +91,7 @@ def simulate_layer_physics(config):
     return t, A_scan, freqs, df, TT_fluid
 
 def show_plots2():
-st.title("📊 Ultrasonic A-Scan Simulation (Exaggerated Low Decay)")
+    st.title("📊 Ultrasonic A-Scan Simulation (Exaggerated Low Decay)")
 
     config = st.session_state["config"]
     t, A_scan, freqs, df_results, TT_fluid = simulate_layer_physics(config)
