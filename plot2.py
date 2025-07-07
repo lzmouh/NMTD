@@ -105,7 +105,7 @@ def simulate_layer_physics(config):
     df = pd.DataFrame(results)
     return t, A_scan, freqs, df, TT_fluid
 
-def show_plots2():
+def show_plots():
     st.title("📊 Ultrasonic A-Scan Simulation Results")
 
     # run simulation
