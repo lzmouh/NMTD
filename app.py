@@ -3,6 +3,7 @@ import json
 from config import DEFAULT_CONFIG
 from simulator import show_simulator
 from plots import show_plots
+from plot2 import simulate_with_defect
 from visualization import show_visualization
 from about import show_about
 from streamlit_option_menu import option_menu
@@ -13,7 +14,7 @@ st.set_page_config(page_title="NMTD App", layout="wide")
 with st.sidebar:
     page = option_menu(
         menu_title="🧪 NMTD Navigation",
-        options=["Simulator", "Plots", "Visualization", "About"],
+        options=["Simulator", "Plots", "Plot2", "Visualization", "About"],
         icons=["cpu", "bar-chart-line", "bounding-box", "info-circle"],
         default_index=0,
         styles={
@@ -46,6 +47,8 @@ if page == "Simulator":
     show_simulator()
 elif page == "Plots":
     show_plots()
+elif page == "Plot2":
+    simulate_with_defect()
 elif page == "Visualization":
     show_visualization()
 elif page == "About":
