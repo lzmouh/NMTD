@@ -48,7 +48,11 @@ if page == "Simulator":
 elif page == "Plots":
     show_plots()
 elif page == "Plot2":
-    simulate_with_defects()
+    t, sig = simulate_with_defects(
+        defect_type=None if def_type=="None" else def_type,
+        defect_layer=layer_idx
+    )
+    st.line_chart({"A-Scan": sig}, x=t*1e6)
 elif page == "Visualization":
     show_visualization()
 elif page == "About":
