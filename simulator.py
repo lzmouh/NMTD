@@ -53,7 +53,7 @@ def show_simulator():
             )
         with c2:
             config["layer_data"][i][2] = st.number_input(
-                f"Layer {i+1} Z (MRayl)", min_value=1.0, max_value=5.0,
+                f"Layer {i+1} Z (MRayl)", min_value=1.0, max_value=10.0,
                 value=config["layer_data"][i][2], key=f"z_{i}"
             )
 
