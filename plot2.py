@@ -147,17 +147,3 @@ def show_plots2():
     fig2.update_layout(xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
                        hovermode="x unified", height=300)
     st.plotly_chart(fig2, use_container_width=True)
-
-    # --- Export Options ---
-    st.subheader("📤 Export Data & Plots")
-    csv = df_results.to_csv(index=False).encode()
-    st.download_button("⬇️ Echo Table (CSV)", csv, "echo_params.csv", "text/csv")
-
-    if st.button("Download A-Scan Plot (PNG)"):
-        fig.write_image("time_domain.png")
-        with open("time_domain.png", "rb") as f:
-            st.download_button("🖼 Download Time Plot", f.read(), "time_domain.png", "image/png")
-    if st.button("Download FFT Plot (PNG)"):
-        fig2.write_image("frequency_domain.png")
-        with open("frequency_domain.png", "rb") as f:
-            st.download_button("🖼 Download FFT Plot", f.read(), "frequency_domain.png", "image/png")
