@@ -96,7 +96,7 @@ def simulate_layer_physics(config):
     return t, A_scan, freqs, df, TT_fluid
 
 
-def show_plots():
+def show_plots2():
     st.title("📊 Ultrasonic A-Scan Simulation Results")
 
     # 1) Run the proven simulation model
