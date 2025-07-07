@@ -57,7 +57,7 @@ def simulate_with_extensions(layer_data, Z_fluid, fluid_density, defect_type=Non
     return t, A_scan, tau_fluid
 
 
-def show_plots():
+def show_plots2():
     config = st.session_state.get("config", DEFAULT_CONFIG)
     layer_data = config["layer_data"]
     Z_fluid = config["Z_fluid"]
