@@ -1,4 +1,3 @@
-import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fft import fft, ifft, fftfreq
@@ -19,12 +18,6 @@ LAYERS = [
     (0.2, 2.6e6, 0.8, 1.5),
     (0.3, 2.8e6, 0.9, 1.6),
 ]
-
-t, sig = simulate_with_defects(
-        defect_type=None if def_type=="None" else def_type,
-        defect_layer=layer_idx
-    )
-st.line_chart({"A-Scan": sig}, x=t*1e6)
 
 def simulate_with_defects(defect_type=None, defect_layer=None):
     # time-base
