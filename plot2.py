@@ -46,13 +46,13 @@ def simulate_layer_physics(config):
 
         # --- Dispersion model ---
         base_velocity = DEFAULT_VELOCITY
-        dispersion_coeff = 0.01  # velocity decrease per MHz
+        dispersion_coeff = 0.5  # velocity decrease per MHz ***** 0.01
         c_layer = base_velocity - dispersion_coeff * (np.abs(freqs) / 1e6)
         c_layer = np.clip(c_layer, 500, base_velocity)
 
         # --- Attenuation model ---
-        alpha0 = 0.5 + 0.1 * i
-        n = 1.2 + 0.05 * i
+        alpha0 = 0.5 + 0.9 * i    # alpha0 = 0.5 + 0.1 * i
+        n = 1.2 + 0.5 * i 
         alpha_f = alpha0 * (np.abs(freqs) / 1e6) ** n * 100  # dB/m
         H = 10 ** (-alpha_f * thickness / 20)
 
