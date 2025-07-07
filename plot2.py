@@ -95,103 +95,93 @@ def simulate_layer_physics(config):
     df = pd.DataFrame(results)
     return t, A_scan, freqs, df, TT_fluid
 
-
 def show_plots2():
-    st.title("📊 Ultrasonic A-Scan Simulation Results (Intermediate Steps)")
+    st.title("📊 Ultrasonic A-scan Intermediate Steps")
 
-    # Retrieve config and run the core sim to get timing & layer table
     config = st.session_state["config"]
-    t, _, freqs, df_results, TT_fluid = simulate_layer_physics(config)
+    t, _, freqs, df_results, _ = simulate_layer_physics(config)
 
-    # 1) Generate the base transducer pulse
+    # 1) Transducer pulse
     f0 = 1e6
     pulse = np.sin(2 * np.pi * f0 * t) * np.exp(-((t - 3 / f0) ** 2) / (0.2e-6) ** 2)
+    st.subheader("1) Raw Transducer Pulse")
+    fig0 = go.Figure([go.Scatter(x=t*1e6, y=pulse, name="Pulse")])
+    fig0.update_layout(xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+    st.plotly_chart(fig0, use_container_width=True)
 
-    # 2) Fluid echo only
-    fluid_only = np.interp(t, t - TT_fluid, pulse, left=0, right=0)
+    # 2) Fluid‐gap echo only
+    # use the user‐defined fluid_velocity from config
+    gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
+    v_fluid = config["fluid_velocity"]         # m/s
+    TT_fluid = 2 * gap_m / v_fluid * 1e6       # µs
 
-    # 3) Build cumulative A-scan step-by-step
-    cumulative = fluid_only.copy()
-    steps = [
-        ("Pulse (no propagation)", pulse),
-        ("Fluid-gap echo only", fluid_only)
-    ]
+    fluid_echo = np.interp(t, t - TT_fluid*1e-6, pulse, left=0, right=0)
+    st.subheader(f"2) Fluid‐Gap Echo Only (TT_fluid = {TT_fluid:.2f} µs)")
+    fig1 = go.Figure([go.Scatter(x=t*1e6, y=fluid_echo, name="Fluid Echo")])
+    fig1.update_layout(xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+    st.plotly_chart(fig1, use_container_width=True)
 
-    # Prepare constants
-    layers = config["layer_data"]
+    # 3) Build cumulative A-scan step‐by‐step
+    cumulative = fluid_echo.copy()
+    steps = [("Fluid Echo Only", cumulative.copy())]
+
+    # Prepare for per‐layer echoes
     Z_prev = config["Z_fluid"] * 1e6
     amp = 1.0
-    depth = DEFAULT_GAP_INCH * INCH_TO_METER
-
-    # Repeat the propagation loop but accumulate echoes one layer at a time
-    fs = 100e6
-    dt = t[1] - t[0]
+    depth = gap_m
     P = fft(pulse)
+    dt = t[1] - t[0]
     freqs = fftfreq(len(t), dt)
 
-    for i, (label, thick_in, Z_mrayl) in enumerate(layers):
+    for i, (label, thick_in, Z_mrayl) in enumerate(config["layer_data"]):
+        # same physics as in simulate_layer_physics, but avoid re‐calculating TT_fluid
         thickness = thick_in * INCH_TO_METER
         Z_curr = Z_mrayl * 1e6
 
-        # Attenuation
+        # attenuation only (skip dispersion to keep it simple)
         alpha0 = 0.5 + 0.1 * i
         n = 1.2 + 0.05 * i
         alpha_f = alpha0 * (np.abs(freqs) / 1e6) ** n * 100
         H = 10 ** (-alpha_f * thickness / 20)
 
-        # R/T
-        R = ((Z_curr - Z_prev)/(Z_curr + Z_prev))**2
+        R = ((Z_curr - Z_prev) / (Z_curr + Z_prev)) ** 2
         T = 1 - R
 
-        # Defect overrides
+        # defect overrides
         extra_delay = 0
-        if config["defect_type"]=="Delamination" and i==config["defect_layer"]-1:
+        if config["defect_type"] == "Delamination" and i == config["defect_layer"] - 1:
             R, T = 0.7, 0.3
             extra_delay = 0.6
-        if config["defect_type"]=="Crack" and i==config["defect_layer"]-1:
+        if config["defect_type"] == "Crack" and i == config["defect_layer"] - 1:
             R, T = 0.5, 0.5
 
-        # Build echo for this layer
         P_i = P * H * T
         p_i = np.real(ifft(P_i))
         depth += thickness
-        tau = 2 * depth / DEFAULT_VELOCITY * 1e6 + extra_delay
-        echo_i = R * np.interp(t, t - tau, p_i, left=0, right=0)
+        tau = (2 * depth / DEFAULT_VELOCITY) * 1e6 + extra_delay
 
-        # Accumulate and store
+        echo_i = R * np.interp(t, t - tau*1e-6, p_i, left=0, right=0)
         cumulative += echo_i
-        steps.append((f"After {label} echo", cumulative.copy()))
+        steps.append((f"After {label}", cumulative.copy()))
 
-        # Update for next
         amp *= T
         Z_prev = Z_curr
 
-    # 4) Plot each step
+    # 4) Plot each cumulative step
     for title, sig in steps:
-        st.subheader(title)
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=t*1e6, y=sig, name=title))
-        # mark fluid echo on all
+        st.subheader(f"3) {title}")
+        fig = go.Figure([go.Scatter(x=t*1e6, y=sig, name=title)])
+        # mark fluid echo line
         fig.add_vline(x=TT_fluid, line_dash="dash", line_color="blue",
                       annotation_text="TT_fluid", annotation_position="top left")
-        fig.update_layout(xaxis_title="Time (µs)", yaxis_title="Amplitude",
-                          height=300, margin={"t":30})
+        fig.update_layout(xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig, use_container_width=True)
 
-    # 5) Finally show the layer-by-layer table
-    st.subheader("📋 Layer-by-Layer Echo Parameters")
-    st.dataframe(df_results)
-
-    # 6) Frequency domain of final A-scan
+    # 5) Final FFT
     st.subheader("🔵 Final A-Scan Frequency Spectrum")
-    fft_vals = np.abs(fft(cumulative))
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=freqs[:len(freqs)//2]/1e6,
-        y=fft_vals[:len(freqs)//2],
-        name="FFT"
-    ))
+    fft_vals = np.abs(fft(steps[-1][1]))
+    fig2 = go.Figure([go.Scatter(x=freqs[:len(freqs)//2]/1e6,
+                                 y=fft_vals[:len(freqs)//2],
+                                 name="FFT")])
     fig2.update_layout(xaxis_title="Frequency (MHz)", yaxis_title="Magnitude", height=300)
     st.plotly_chart(fig2, use_container_width=True)
-
-    # 7) Export options (as before)...
