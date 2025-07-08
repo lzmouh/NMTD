@@ -15,6 +15,16 @@ fluid_impedance_db = {
     "Other":                None
 }
 
+# ----- Material database -----
+MATERIAL_DB = {
+    "GRE (Glass-Reinforced Epoxy)":   {"v":2000, "alpha0":0.05, "n":1.2},
+    "HDPE":                           {"v":1900, "alpha0":0.04, "n":1.1},
+    "RTP (Thermoplastic)":           {"v":1800, "alpha0":0.06, "n":1.3},
+    "GRP (Glass-Reinforced Plastic)": {"v":1950, "alpha0":0.05, "n":1.2},
+    "Custom":                        {"v":None, "alpha0":None, "n":None},
+}
+
+# ----- Default densities -----
 default_densities = {
     "Water":                1.0,    # g/cc
     "Oil":                  0.85,
