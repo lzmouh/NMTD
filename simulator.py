@@ -103,7 +103,7 @@ def show_simulator():
                                       value=50.0, step=1.0, key="sweep_us")
 
     # Convert units
-    fs = 10e6  # 10 MHz sampling
+    fs = 100e6  # 100 MHz sampling
     f0 = f_start_mhz * 1e6
     f1 = f_end_mhz   * 1e6
     sweep_s = sweep_us * 1e-6
