@@ -1,159 +1,169 @@
+# plots.py
+
 import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from scipy.signal import fftconvolve
+from scipy.fft import fft, fftfreq
 from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 
-def simulate_received_signal(config):
+def simulate_multimode(config):
     """
-    Build the raw received A-scan by summing delayed, attenuated echoes of the chirp.
+    Simulate raw & compressed A-scan with multiple modes and per-layer physics.
     Returns:
-      t_rx      : time axis (s)
-      rx        : raw received signal
-      delays_us : list of echo times in µs
-      amps      : list of echo amplitude factors
+      t_rx       : time axis (s)
+      rx         : raw A-scan
+      compressed : pulse-compressed A-scan
+      df_params  : DataFrame of echo parameters for each layer & mode
     """
     # Unpack config
-    fs       = config["sampling_rate"]           # Hz
-    t_chirp  = np.array(config["tx_chirp_t"])    # s
-    tx       = np.array(config["tx_chirp_waveform"])
-    layers   = config["layer_data"]
-    defect   = config["defect_type"]
-    defect_i = config["defect_layer"] - 1
+    fs         = config["sampling_rate"]
+    t_chirp    = np.array(config["tx_chirp_t"])
+    tx         = np.array(config["tx_chirp_waveform"])
+    layers     = config["layer_data"]
+    defect     = config["defect_type"]
+    defect_idx = config["defect_layer"] - 1
 
-    # Central frequency (approx mid‐band)
-    f0 = (config["chirp_start_mhz"] + config["chirp_end_mhz"]) / 2 * 1e6  # Hz
+    # Define modes: velocity (m/s), α0 (dB/cm/MHz), exponent n
+    # Example set; you can make this user-configurable
+    modes = [
+        (2000, 0.02, 1.0),
+        (1800, 0.05, 1.2),
+        (1600, 0.08, 1.5)
+    ]
+    freq0 = (config["chirp_start_mhz"] + config["chirp_end_mhz"])/2  # MHz
 
-    # Compute depths for fluid gap + each interface
+    # Build depths
     gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
-    depths = [gap_m]
-    for _, thick_in, _ in layers:
-        depths.append(depths[-1] + thick_in * INCH_TO_METER)
+    depths = [gap_m] + [
+        gap_m + sum(th * INCH_TO_METER for th, _ in layers[:i+1])
+        for i in range(len(layers))
+    ]
 
-    # Reflection & attenuation parameters per layer
-    Z_prev = config["Z_fluid"]                    # MRayl
+    # Reflection & transmission per interface
+    Z_prev = config["Z_fluid"]
     R_list, T_list = [], []
-    for (_, _, Z_m) in layers:
-        R = (Z_m - Z_prev) / (Z_m + Z_prev)
+    for name, thick, Z in layers:
+        R = (Z - Z_prev)/(Z + Z_prev)
         T = 1 - R**2
-        R_list.append(R)
-        T_list.append(T)
-        Z_prev = Z_m
+        R_list.append(R); T_list.append(T)
+        Z_prev = Z
 
-    # Total signal length: allow for last echo + chirp duration
-    max_delay = max(2*d / DEFAULT_VELOCITY for d in depths)
-    n_rx = int((max_delay + len(t_chirp)/fs + 1e-6) * fs)
-    rx   = np.zeros(n_rx)
-    t_rx = np.arange(n_rx) / fs
+    # Allocate raw rx
+    max_delay_s = max(2*d/DEFAULT_VELOCITY for d in depths) + len(t_chirp)/fs
+    n_rx = int(max_delay_s * fs) + len(t_chirp)
+    rx = np.zeros(n_rx)
+    t_rx = np.arange(n_rx)/fs
 
-    delays_us = []
-    amps      = []
+    # Collect parameters
+    records = []
 
-    # First echo: fluid-gap (assume full reflection R=-1)
-    delay0_s = 2 * gap_m / config["fluid_velocity"]
-    amp0     = 1.0
-    if defect=="Delamination" and defect_i== -1:
-        amp0 *= 0.7
-    elif defect=="Crack" and defect_i== -1:
-        amp0 *= 0.5
-    idx0 = int(delay0_s * fs)
-    rx[idx0:idx0+len(tx)] += amp0 * tx
-    delays_us.append(delay0_s * 1e6)
-    amps.append(amp0)
+    # Simulate each mode and each interface echo
+    for m_idx, (v, alpha0, n_exp) in enumerate(modes):
+        # frequency domain chirp
+        P = fft(tx)
+        freqs = fftfreq(len(tx), 1/fs)
 
-    # Now each layer echo
-    for i, depth in enumerate(depths[1:], start=0):
-        # two‐way travel time using baseline velocity
-        delay_s = 2 * depth / DEFAULT_VELOCITY
-        # attenuation α(f0) model: α0(dB/cm/MHz) * f0(MHz) * path(cm)
-        alpha0 = 0.5 + 0.1 * i
-        path_cm = depth * 100
-        att_factor = 10 ** ( - alpha0 * (f0/1e6) * path_cm / 20)
-        # reflection coefficient
-        R = R_list[i]
-        amp = att_factor * abs(R)
-        # defect override
-        if defect=="Delamination" and i==defect_i:
-            amp *= 0.7
-        if defect=="Crack" and i==defect_i:
-            amp *= 0.5
+        # attenuation filter H(f) and dispersion D(f)
+        # we'll apply same for all interfaces, then time-shift
+        alpha_f = alpha0 * (np.abs(freqs)/1e6)**n_exp * 100  # dB/m
+        H = 10**(-alpha_f * (depths[-1]) / 20)  # worst-case path
+        beta = 0.05  # dispersion coefficient
+        c_f = v * (1 + beta * (np.abs(freqs)/1e6)**0.5)
+        # we'll apply per depth inside loop
 
-        idx = int(delay_s * fs)
-        rx[idx:idx+len(tx)] += amp * tx
-        delays_us.append(delay_s * 1e6)
-        amps.append(amp)
+        for i, depth in enumerate(depths):
+            # two-way travel
+            tau_s = 2 * depth / v
+            # phase shift for dispersion
+            D = np.exp(-1j * 2*np.pi*freqs * (2*depth/c_f))
+            # attenuation at this depth
+            path_cm = depth * 100
+            H_i = 10**(-alpha0 * (np.abs(freqs)/1e6)**n_exp * path_cm / 20)
+            # combined filter
+            P_i = P * H_i * D
+            p_i = np.real(np.fft.ifft(P_i))
 
-    return t_rx, rx, delays_us, amps
+            # reflection or full for fluid gap
+            if i == 0:
+                R = -1.0
+                T = 1.0
+            else:
+                R = R_list[i-1]
+                T = T_list[i-1]
 
-def show_plots():
-    st.title("📊 NMTD A-Scan: Raw & Pulse-Compressed")
+            # defect override
+            if defect=="Delamination" and (i-1)==defect_idx:
+                R *= 0.7; T *= 0.7
+            if defect=="Crack" and (i-1)==defect_idx:
+                R *= 0.5; T *= 0.5
 
-    config = st.session_state["config"]
-    t_rx, rx, delays_us, amps = simulate_received_signal(config)
+            amp = abs(R)
+            idx = int(tau_s * fs)
+            rx[idx:idx+len(p_i)] += amp * p_i
 
-    # Build DataFrame of echoes
-    df = pd.DataFrame({
-        "Echo #":     np.arange(len(delays_us)) + 1,
-        "Time (µs)":  [round(d,2) for d in delays_us],
-        "Amplitude":  [round(a,3) for a in amps]
-    })
+            # record params
+            if i>0:  # skip fluid in table
+                records.append({
+                    "Mode": m_idx+1,
+                    "Layer": layers[i-1][0],
+                    "Thickness (in)": layers[i-1][1],
+                    "Z (MRayl)": layers[i-1][2],
+                    "α0 (dB/cm/MHz)": round(alpha0,2),
+                    "n exp": round(n_exp,2),
+                    "R": round(R,3),
+                    "T": round(T,3),
+                    "Time (µs)": round(tau_s*1e6,2),
+                    "Amp": round(amp,3)
+                })
 
-    st.subheader("📋 Echo Table")
-    st.dataframe(df, use_container_width=True)
-
-    # 1) Raw received A-scan
-    st.subheader("🟢 Raw Received A-Scan")
-    fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(
-        x=t_rx*1e6, y=rx,
-        mode='lines', line=dict(color='darkgreen'),
-        name='Raw A-scan'
-    ))
-    # Mark each echo time
-    for d, lbl in zip(delays_us, df["Echo #"]):
-        fig1.add_vline(x=d, line_dash="dot", line_color="gray",
-                       annotation_text=f"Echo {lbl}", annotation_position="top right")
-    fig1.update_layout(
-        xaxis_title="Time (µs)", yaxis_title="Amplitude",
-        title="Raw A-Scan (Uncompressed)", hovermode="x unified", height=400
-    )
-    st.plotly_chart(fig1, use_container_width=True)
-
-    # 2) Matched-filter (pulse compression)
-    st.subheader("🔵 Pulse-Compressed A-Scan")
-    tx = np.array(config["tx_chirp_waveform"])
+    # Matched‐filter compression
     compressed = fftconvolve(rx, tx[::-1], mode='same')
 
+    df = pd.DataFrame.from_records(records)
+    return t_rx, rx, compressed, freqs, df
+
+def show_plots():
+    st.title("📊 Multimode A-Scan Simulation")
+
+    # Run sim
+    config = st.session_state["config"]
+    t_rx, rx, compressed, freqs, df = simulate_multimode(config)
+
+    # Table of parameters
+    st.subheader("📋 Echo Parameters")
+    st.dataframe(df, use_container_width=True)
+
+    # Raw A-scan
+    st.subheader("🟢 Raw Received A-Scan")
+    fig1 = go.Figure()
+    fig1.add_trace(go.Scatter(x=t_rx*1e6, y=rx, line=dict(color="green"), name="Raw"))
+    for _, row in df.iterrows():
+        fig1.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
+                       annotation_text=row["Layer"], annotation_position="top right")
+    fig1.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
+                       hovermode="x unified", height=350)
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # Compressed A-scan
+    st.subheader("🔴 Pulse-Compressed A-Scan")
     fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=t_rx*1e6, y=compressed,
-        mode='lines', line=dict(color='firebrick'),
-        name='Compressed A-scan'
-    ))
-    for d, lbl in zip(delays_us, df["Echo #"]):
-        fig2.add_vline(x=d, line_dash="dot", line_color="gray",
-                       annotation_text=f"Echo {lbl}", annotation_position="top right")
-    fig2.update_layout(
-        xaxis_title="Time (µs)", yaxis_title="Amplitude",
-        title="Pulse-Compressed A-Scan", hovermode="x unified", height=400
-    )
+    fig2.add_trace(go.Scatter(x=t_rx*1e6, y=compressed, line=dict(color="firebrick"), name="Compressed"))
+    for _, row in df.iterrows():
+        fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
+                       annotation_text=row["Layer"], annotation_position="top right")
+    fig2.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
+                       hovermode="x unified", height=350)
     st.plotly_chart(fig2, use_container_width=True)
 
-    # 3) Frequency-domain of compressed signal
-    st.subheader("📈 Frequency Spectrum (Compressed A-Scan)")
-    fft_vals = np.abs(np.fft.fft(compressed))
-    freqs   = np.fft.fftfreq(len(compressed), d=1/config["sampling_rate"])
-    mask    = freqs >= 0
-
+    # Frequency-domain of compressed
+    st.subheader("🔵 Frequency Spectrum")
+    fft_vals = np.abs(fft(compressed))
+    mask = freqs>=0
     fig3 = go.Figure()
-    fig3.add_trace(go.Scatter(
-        x=freqs[mask]/1e6, y=fft_vals[mask],
-        mode='lines', line=dict(color='royalblue'),
-        name='FFT'
-    ))
-    fig3.update_layout(
-        xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
-        height=350, hovermode="x unified"
-    )
+    fig3.add_trace(go.Scatter(x=freqs[mask]/1e6, y=fft_vals[mask], line=dict(color="navy")))
+    fig3.update_layout(xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
+                       hovermode="x unified", height=300)
     st.plotly_chart(fig3, use_container_width=True)
+    
