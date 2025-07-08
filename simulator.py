@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 import json
 from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_CONFIG
 from scipy.signal import chirp
@@ -108,51 +107,32 @@ def show_simulator():
     f0 = f_start_mhz * 1e6
     f1 = f_end_mhz   * 1e6
     sweep_s = sweep_us * 1e-6
-    
+
     # Generate windowed chirp
-    
     t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_s, f0, f1)
 
-    # --- Clip out any leading/trailing zeros ---
-    nonzero = np.where(np.abs(tx_chirp) > 1e-3)[0]
-    i0, i1  = nonzero[0], nonzero[-1]+1
-    t_plot  = t_chirp[i0:i1] * 1e6   # µs
-    tx_plot = tx_chirp[i0:i1]
-
-    # --- Time-domain plot with Plotly ---
+    # Time‐domain plot
     st.subheader("🟡 Transmitted Chirp Waveform")
-    fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(
-        x=t_plot, y=tx_plot,
-        mode='lines', line=dict(color='darkorange'),
-        name="Chirp"
-    ))
-    fig1.update_layout(
-        xaxis_title="Time (µs)",
-        yaxis_title="Amplitude",
-        title=f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs",
-        hovermode="x unified"
-    )
-    st.plotly_chart(fig1, use_container_width=True)
+    fig, ax = plt.subplots(figsize=(6, 2))
+    ax.plot(t_chirp * 1e6, tx_chirp)
+    ax.set_xlabel("Time (µs)")
+    ax.set_ylabel("Amplitude")
+    ax.set_title(f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs")
+    ax.grid(True)
+    st.pyplot(fig)
 
-    # --- Frequency-domain plot ---
+    # Frequency‐domain plot
     st.subheader("🔊 Chirp Frequency Spectrum")
     TX_FFT = np.fft.fft(tx_chirp)
     freqs = np.fft.fftfreq(len(tx_chirp), d=1/fs)
+    fig2, ax2 = plt.subplots(figsize=(6, 2))
     mask = freqs >= 0
-
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(
-        x=freqs[mask]/1e6, y=np.abs(TX_FFT[mask]),
-        mode='lines', line=dict(color='navy'),
-        name="Spectrum"
-    ))
-    fig2.update_layout(
-        xaxis_title="Frequency (MHz)",
-        yaxis_title="Magnitude",
-        hovermode="x unified"
-    )
-    st.plotly_chart(fig2, use_container_width=True)
+    ax2.plot(freqs[mask] / 1e6, np.abs(TX_FFT[mask]))
+    ax2.set_xlabel("Frequency (MHz)")
+    ax2.set_ylabel("Magnitude")
+    ax2.set_title("Spectrum of Windowed Chirp")
+    ax2.grid(True)
+    st.pyplot(fig2)
 
     # Save to config for downstream use
     config.update({
