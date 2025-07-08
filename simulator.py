@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import json
 from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_CONFIG
 from scipy.signal import chirp
