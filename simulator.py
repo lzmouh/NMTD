@@ -102,11 +102,11 @@ def show_simulator():
                                       value=50.0, step=1.0, key="sweep_us")
 
     # Convert units
-    fs           = 100e6                     # sampling 100 MHz
-    f0           = f_start_mhz * 1e6
-    f1           = f_end_mhz   * 1e6
-    sweep_time_s = sweep_us    * 1e-6
-
+    fs = 100e6  # 100 MHz sampling
+    f0 = f_start_mhz * 1e6
+    f1 = f_end_mhz   * 1e6
+    sweep_s = sweep_us * 1e-6
+    
     # Generate windowed chirp
     
     t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_s, f0, f1)
