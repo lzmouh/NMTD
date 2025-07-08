@@ -6,7 +6,7 @@ from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT
 from scipy.signal import chirp
 
 def generate_tx_chirp(fs, sweep_s, f_start, f_end):
-    n = int(fs * sweep_time_s)
+    n = int(fs * sweep_s)
     t = np.linspace(0, sweep_s, n, endpoint=False)
     # Linear FM chirp
     tx = chirp(t, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
