@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_CONFIG
-from scipy.signal import chirp, tukey
+from scipy.signal import chirp
+from scipy.signal.windows import tukey
 
 def generate_tx_chirp(fs, sweep_s, f_start, f_end):
     n = int(fs * sweep_s)
