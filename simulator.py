@@ -93,17 +93,17 @@ def show_simulator():
     col1, col2, col3 = st.columns(3)
     with col1:
         # in MHz
-        f_start_mhz = st.number_input("Start Frequency (MHz)", min_value=0.1, max_value=20.0,
+        f_start_mhz = st.number_input("Start Frequency (MHz)", min_value=0.1, max_value=10.0,
                                       value=0.5, step=0.1, key="f_start_mhz")
     with col2:
-        f_end_mhz   = st.number_input("End Frequency (MHz)",   min_value=0.1, max_value=20.0,
+        f_end_mhz   = st.number_input("End Frequency (MHz)",   min_value=0.1, max_value=10.0,
                                       value=5.0, step=0.1, key="f_end_mhz")
     with col3:
         sweep_us    = st.number_input("Sweep Duration (µs)",    min_value=1.0, max_value=200.0,
                                       value=50.0, step=1.0, key="sweep_us")
 
     # Convert units
-    fs = 100e6  # 100 MHz sampling
+    fs = 10e6  # 10 MHz sampling
     f0 = f_start_mhz * 1e6
     f1 = f_end_mhz   * 1e6
     sweep_s = sweep_us * 1e-6
