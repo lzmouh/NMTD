@@ -57,19 +57,55 @@ def show_simulator():
             config["layer_data"].append([f"Layer {len(config['layer_data'])+1}", 0.2, 2.5])
 
     st.markdown("### 📦 Layers Configuration")
-
+    new_layers = []
     for i in range(config["num_layers"]):
-        c1, c2 = st.columns(2)
+        # two columns: thickness & impedance
+        c1, c2, c3 = st.columns([1,1,2])
         with c1:
-            config["layer_data"][i][1] = st.number_input(
-                f"Layer {i+1} Thickness (in)", min_value=0.01, max_value=1.0,
-                value=config["layer_data"][i][1], key=f"t_{i}"
+            thickness = st.number_input(
+                f"Layer {i+1} Thickness (in)",
+                min_value=0.01, max_value=1.0,
+                value=config["layer_data"][i].get("thickness",0.2),
+                key=f"thick_{i}"
             )
         with c2:
-            config["layer_data"][i][2] = st.number_input(
-                f"Layer {i+1} Z (MRayl)", min_value=1.0, max_value=10.0,
-                value=config["layer_data"][i][2], key=f"z_{i}"
+            impedance = st.number_input(
+                f"Layer {i+1} Z (MRayl)",
+                min_value=1.0, max_value=10.0,
+                value=config["layer_data"][i].get("Z",2.5),
+                key=f"Z_{i}"
             )
+        with c3:
+            mat = st.selectbox(
+                f"Layer {i+1} Material",
+                options=list(MATERIAL_DB.keys()),
+                index=list(MATERIAL_DB.keys()).index(
+                    config["layer_data"][i].get("material","GRE (Glass-Reinforced Epoxy)")
+                ),
+                key=f"mat_{i}"
+            )
+            props = MATERIAL_DB[mat]
+            # if custom, let user fill in
+            if mat == "Custom":
+                v     = st.number_input(f"  → v (m/s)", 500, 5000, 2000, key=f"v_{i}")
+                alpha = st.number_input(f"  → α0 (dB/cm/MHz)", 0.0, 1.0, 0.05, key=f"a_{i}")
+                n_exp = st.number_input(f"  → n exponent", 0.1, 3.0, 1.2, key=f"n_{i}")
+            else:
+                v, alpha, n_exp = props["v"], props["alpha0"], props["n"]
+                st.markdown(f"  • v = {v} m/s · α₀ = {alpha} dB/cm/MHz · n = {n_exp}")
+        # pack into dict
+        new_layers.append({
+            "name":       f"Layer {i+1}",
+            "thickness":  thickness,
+            "Z":          impedance,
+            "material":   mat,
+            "v":          v,
+            "alpha0":     alpha,
+            "n_exp":      n_exp
+        })
+    
+    config["layer_data"] = new_layers
+    st.session_state["config"] = config
 
     # Calculate and display total thickness
     config["total_thickness"] = sum([layer[1] for layer in config["layer_data"]])
