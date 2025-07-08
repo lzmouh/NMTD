@@ -135,7 +135,8 @@ def show_plots():
     t_rx, rx, compressed, freqs, df = simulate_multimode(config)
 
     # Table of parameters
-    st.subheader("📋 Echo Parameters")
+    df_mode1 = pd.DataFrame(records)
+    st.subheader("📋 Direct Mode Echo Parameters")
     st.dataframe(df_mode1, use_container_width=True)
 
     # Raw A-scan
