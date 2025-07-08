@@ -34,12 +34,11 @@ def simulate_multimode(config):
     ]
     freq0 = (config["chirp_start_mhz"] + config["chirp_end_mhz"])/2  # MHz
 
-    # Build depths
+    # Compute depths for fluid gap + each interface
     gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
-    depths = [gap_m] + [
-        gap_m + sum(th * INCH_TO_METER for th, _ in layers[:i+1])
-        for i in range(len(layers))
-    ]
+    depths = [gap_m]
+    for _, thick_in, _ in layers:
+        depths.append(depths[-1] + thick_in * INCH_TO_METER)
 
     # Reflection & transmission per interface
     Z_prev = config["Z_fluid"]
