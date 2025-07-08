@@ -1,6 +1,27 @@
 import streamlit as st
 import json
-from config import fluid_impedance_db, default_densities, DEFAULT_CONFIG
+from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_CONFIG
+from scipy.signal import chirp
+from config import 
+
+def generate_tx_chirp(fs, sweep_time_s, f_start, f_end):
+    """
+    Generate a linear FM chirp.
+
+    Args:
+      fs           : sampling rate in Hz
+      sweep_time_s : chirp duration in seconds
+      f_start      : start frequency in Hz
+      f_end        : end frequency in Hz
+
+    Returns:
+      t_chirp : 1D np.array of time stamps [s]
+      tx      : 1D np.array of chirp amplitude
+    """
+    n_samples = int(fs * sweep_time_s)
+    t_chirp = np.linspace(0, sweep_time_s, n_samples, endpoint=False)
+    tx = chirp(t_chirp, f0=f_start, f1=f_end, t1=sweep_time_s, method='linear')
+    return t_chirp, tx
 
 def show_simulator():
     st.title("🔍 NMTD Ultrasonic Response Simulator")
@@ -74,6 +95,52 @@ def show_simulator():
             "Defect Layer Index", 1, config["num_layers"], config["defect_layer"]
         )
 
+    # --- Chirp settings ---
+    st.subheader("📡 Transmitter Chirp Settings")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        # in MHz
+        f_start_mhz = st.number_input("Start Frequency (MHz)", min_value=0.1, max_value=20.0,
+                                      value=0.5, step=0.1, key="f_start_mhz")
+    with col2:
+        f_end_mhz   = st.number_input("End Frequency (MHz)",   min_value=0.1, max_value=20.0,
+                                      value=5.0, step=0.1, key="f_end_mhz")
+    with col3:
+        sweep_us    = st.number_input("Sweep Duration (µs)",    min_value=1.0, max_value=200.0,
+                                      value=50.0, step=1.0, key="sweep_us")
+
+    # Convert units
+    fs           = 100e6                     # sampling 100 MHz
+    f0           = f_start_mhz * 1e6
+    f1           = f_end_mhz   * 1e6
+    sweep_time_s = sweep_us    * 1e-6
+
+    # Generate chirp
+    t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_time_s, f0, f1)
+
+    # Plot transmitted chirp
+    st.subheader("🟡 Transmitted Chirp Waveform")
+    fig, ax = plt.subplots(figsize=(6,2))
+    ax.plot(t_chirp * 1e6, tx_chirp, lw=1)
+    ax.set_xlabel("Time (µs)")
+    ax.set_ylabel("Amplitude")
+    ax.set_title(f"Chirp: {f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs")
+    ax.grid(True)
+    st.pyplot(fig)
+
+    # --- Save chirp into config for downstream use ---
+    config.update({
+        "tx_chirp_t": t_chirp.tolist(),
+        "tx_chirp_waveform": tx_chirp.tolist(),
+        "chirp_start_mhz": f_start_mhz,
+        "chirp_end_mhz":   f_end_mhz,
+        "chirp_sweep_us":  sweep_us,
+        "sampling_rate":   fs
+    })
+
+
+
+    
     # --- CONFIG SAVE/LOAD ---
     st.markdown("### 💾 Save / Load / Export")
     c1, c2, c3 = st.columns(3)
@@ -99,3 +166,4 @@ def show_simulator():
         if st.button("🗑️ Reset to Default"):
             st.session_state["config"] = DEFAULT_CONFIG.copy()
             st.rerun()
+
