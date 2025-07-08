@@ -156,13 +156,20 @@ def show_plots():
                        hovermode="x unified", height=350)
     st.plotly_chart(fig2, use_container_width=True)
 
-    # Frequency-domain of compressed
-    st.subheader("🔵 Frequency Spectrum")
-    fft_vals = np.abs(fft(compressed))
-    mask = freqs>=0
+    # 3) Frequency-domain of compressed signal
+    st.subheader("📈 Frequency Spectrum (Compressed A-Scan)")
+    fft_vals = np.abs(np.fft.fft(compressed))
+    freqs   = np.fft.fftfreq(len(compressed), d=1/config["sampling_rate"])
+    mask    = freqs >= 0
+
     fig3 = go.Figure()
-    fig3.add_trace(go.Scatter(x=freqs[mask]/1e6, y=fft_vals[mask], line=dict(color="navy")))
-    fig3.update_layout(xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
-                       hovermode="x unified", height=300)
+    fig3.add_trace(go.Scatter(
+        x=freqs[mask]/1e6, y=fft_vals[mask],
+        mode='lines', line=dict(color='royalblue'),
+        name='FFT'
+    ))
+    fig3.update_layout(
+        xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
+        height=350, hovermode="x unified"
+    )
     st.plotly_chart(fig3, use_container_width=True)
-    
