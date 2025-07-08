@@ -121,6 +121,10 @@ def simulate_multimode(config):
     compressed = fftconvolve(rx, tx[::-1], mode='same')
 
     df = pd.DataFrame.from_records(records)
+
+    # select only Mode 1 rows
+    df_mode1 = df[df["Mode"] == 1]
+
     return t_rx, rx, compressed, freqs, df
 
 def show_plots():
@@ -132,7 +136,7 @@ def show_plots():
 
     # Table of parameters
     st.subheader("📋 Echo Parameters")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df_mode1, use_container_width=True)
 
     # Raw A-scan
     st.subheader("🟢 Raw Received A-Scan")
