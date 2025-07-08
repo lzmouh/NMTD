@@ -26,12 +26,9 @@ def simulate_multimode(config):
     defect_idx = config["defect_layer"] - 1
 
     # Define modes: velocity (m/s), α0 (dB/cm/MHz), exponent n
-    # Example set; you can make this user-configurable
-    modes = [
-        (2000, 0.02, 1.0),
-        (1800, 0.05, 1.2),
-        (1600, 0.08, 1.5)
-    ]
+    modes = [(config["fluid_velocity"], 0.0, 0.0)]  # fluid-gap mode
+    for lyr in config["layer_data"]:
+        modes.append((lyr["v"], lyr["alpha0"], lyr["n_exp"]))
     freq0 = (config["chirp_start_mhz"] + config["chirp_end_mhz"])/2  # MHz
 
     # Compute depths for fluid gap + each interface
