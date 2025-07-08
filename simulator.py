@@ -6,23 +6,14 @@ from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT
 from scipy.signal import chirp
 
 def generate_tx_chirp(fs, sweep_time_s, f_start, f_end):
-    """
-    Generate a linear FM chirp.
-
-    Args:
-      fs           : sampling rate in Hz
-      sweep_time_s : chirp duration in seconds
-      f_start      : start frequency in Hz
-      f_end        : end frequency in Hz
-
-    Returns:
-      t_chirp : 1D np.array of time stamps [s]
-      tx      : 1D np.array of chirp amplitude
-    """
-    n_samples = int(fs * sweep_time_s)
-    t_chirp = np.linspace(0, sweep_time_s, n_samples, endpoint=False)
-    tx = chirp(t_chirp, f0=f_start, f1=f_end, t1=sweep_time_s, method='linear')
-    return t_chirp, tx
+    n = int(fs * sweep_time_s)
+    t = np.linspace(0, sweep_time_s, n, endpoint=False)
+    # Linear FM chirp
+    tx = chirp(t, f0=f_start, f1=f_end, t1=sweep_time_s, method='linear')
+    # Apply Tukey window (alpha=0.1) to ramp in/out
+    win = tukey(n, alpha=0.1)
+    tx *= win
+    return t, tx
 
 def show_simulator():
     st.title("🔍 NMTD Ultrasonic Response Simulator")
@@ -116,31 +107,43 @@ def show_simulator():
     f1           = f_end_mhz   * 1e6
     sweep_time_s = sweep_us    * 1e-6
 
-    # Generate chirp
-    t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_time_s, f0, f1)
+    # Generate windowed chirp
+    
+    t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_s, f0, f1)
 
-    # Plot transmitted chirp
+    # Time‐domain plot
     st.subheader("🟡 Transmitted Chirp Waveform")
-    fig, ax = plt.subplots(figsize=(6,2))
-    ax.plot(t_chirp * 1e6, tx_chirp, lw=1)
+    fig, ax = plt.subplots(figsize=(6, 2))
+    ax.plot(t_chirp * 1e6, tx_chirp)
     ax.set_xlabel("Time (µs)")
     ax.set_ylabel("Amplitude")
-    ax.set_title(f"Chirp: {f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs")
+    ax.set_title(f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs")
     ax.grid(True)
     st.pyplot(fig)
 
-    # --- Save chirp into config for downstream use ---
+    # Frequency‐domain plot
+    st.subheader("🔊 Chirp Frequency Spectrum")
+    TX_FFT = np.fft.fft(tx_chirp)
+    freqs = np.fft.fftfreq(len(tx_chirp), d=1/fs)
+    fig2, ax2 = plt.subplots(figsize=(6, 2))
+    mask = freqs >= 0
+    ax2.plot(freqs[mask] / 1e6, np.abs(TX_FFT[mask]))
+    ax2.set_xlabel("Frequency (MHz)")
+    ax2.set_ylabel("Magnitude")
+    ax2.set_title("Spectrum of Windowed Chirp")
+    ax2.grid(True)
+    st.pyplot(fig2)
+
+    # Save to config for downstream use
     config.update({
-        "tx_chirp_t": t_chirp.tolist(),
-        "tx_chirp_waveform": tx_chirp.tolist(),
-        "chirp_start_mhz": f_start_mhz,
-        "chirp_end_mhz":   f_end_mhz,
-        "chirp_sweep_us":  sweep_us,
-        "sampling_rate":   fs
+        "chirp_start_mhz":  f_start_mhz,
+        "chirp_end_mhz":    f_end_mhz,
+        "chirp_sweep_us":   sweep_us,
+        "sampling_rate":    fs,
+        "tx_chirp_t":       t_chirp.tolist(),
+        "tx_chirp_waveform":tx_chirp.tolist()
     })
-
-
-
+    st.session_state["config"] = config
     
     # --- CONFIG SAVE/LOAD ---
     st.markdown("### 💾 Save / Load / Export")
