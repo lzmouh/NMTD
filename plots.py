@@ -202,7 +202,7 @@ def show_plots():
 
     # Compressed A-scan
     st.subheader("🔴 Pulse-Compressed A-Scan")
-    fig2 = go.Figure()
+    fig2 = go.Figure(figsize=(6, 2)
     fig2.add_trace(go.Scatter(x=t_rx*1e6, y=compressed, line=dict(color="firebrick"), name="Compressed"))
     df_mode1 = df[df["Mode"] == 1]
     for _, row in df_mode1.iterrows():
@@ -218,7 +218,7 @@ def show_plots():
     freqs   = np.fft.fftfreq(len(compressed), d=1/config["sampling_rate"])
     mask    = freqs >= 0
 
-    fig3 = go.Figure()
+    fig3 = go.Figure(figsize=(6, 2)
     fig3.add_trace(go.Scatter(
         x=freqs[mask]/1e6, y=fft_vals[mask],
         mode='lines', line=dict(color='royalblue'),
