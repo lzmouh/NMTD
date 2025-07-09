@@ -137,60 +137,46 @@ def show_visualization():
                      color=c, fontsize=7,
                      arrowprops=dict(arrowstyle="->", color=c))
 
-    # Tool & sensor & fluid gap annotations
-    for label, radius, color in [
-        ("Tool Body", tool_r, 'black'),
-        ("Fluid Gap", r_inner, 'blue'),
-        ("Sensor Pad", r_inner-pad_gap, 'red')
-    ]:
-        ang, rad = -45, np.deg2rad(-45)
-        x,y = radius*np.cos(rad), radius*np.sin(rad)
-        xt,yt = (r_curr+1.0)*np.cos(rad),(r_curr+1.0)*np.sin(rad)
-        ax2.annotate(label, xy=(x,y), xytext=(xt,yt),
-                     arrowprops=dict(arrowstyle="->", color=color),
-                     fontsize=7, color=color)
+        # Tool Body Annotation
+    angle = 315
+    rad = np.deg2rad(angle)
+    x = tool_r * np.cos(rad)
+    y = tool_r * np.sin(rad)
+    xt = (r_inner + total_thickness + 1.0) * np.cos(rad)
+    yt = (r_inner + total_thickness + 1.0) * np.sin(rad)
+    ax2.annotate("Tool Body",
+                 xy=(x, y),
+                 xytext=(xt, yt),
+                 arrowprops=dict(arrowstyle="->", color='black'),
+                 fontsize=8,
+                 color='black')
+
+    
+    # Sensor Annotation
+    r_sensor = r_inner - pad_gap  # where pads are drawn
+    angle = -10
+    rad = np.deg2rad(angle)
+    x = r_sensor * np.cos(rad)
+    y = r_sensor * np.sin(rad)
+    xt = (r_inner + total_thickness + 1.0) * np.cos(rad)
+    yt = (r_inner + total_thickness + 1.0) * np.sin(rad)
+    ax2.annotate("Sensor Pad",
+                 xy=(x, y),
+                 xytext=(xt, yt),
+                 arrowprops=dict(arrowstyle="->", color='red'),
+                 fontsize=8,
+                 color='red')
+
+    # Annotation Fluid Gap
+    ax2.annotate("Fluid Gap", xy=(r_inner, 0), xytext=(r_inner + total_thickness + 1.0, 0),
+                 arrowprops=dict(arrowstyle="->"), fontsize=7)
 
     ax2.set_aspect('equal')
-    ax2.set_xlim(-r_curr-1, r_curr+1)
-    ax2.set_ylim(-r_curr-1, r_curr+1)
+    ax2.set_xlim(-r_current - 2, r_current + 2)
+    ax2.set_ylim(-r_current - 2, r_current + 2)
     ax2.axis('off')
-    ax2.set_title("Top View: Tool & Pads inside Multilayer Pipe", fontsize=10)
+    ax2.set_title("Top View: Tool & Pads inside Multilayer Pipe", fontsize=8)
+
     st.pyplot(fig2, use_container_width=True)
 
-    # --------- 3) Side View Drawing ---------
-    fig3, ax3 = plt.subplots(figsize=(12, 2))
-    x, Ht, yt = 0.1, 0.5, 0.2
-
-    # Tool Body (longitudinal)
-    L_tool = 1.0
-    ax3.add_patch(Rectangle((x, yt), L_tool, Ht, color='gray'))
-    ax3.text(x+L_tool/2, yt+Ht+0.05, "Tool Body", ha='center', fontsize=7)
-    x += L_tool
-
-    # Fluid Gap
-    L_gap = DEFAULT_GAP_INCH
-    ax3.add_patch(Rectangle((x, yt), L_gap, Ht, color='skyblue'))
-    ax3.text(x+L_gap/2, yt+Ht+0.05, "Fluid Gap", ha='center', fontsize=7)
-    x += L_gap
-
-    # Pipe Layers Longitudinal
-    for i, layer in enumerate(layer_data):
-        t = layer["thickness"]
-        name = layer.get("name", f"Layer {i+1}")
-        color = cmap(i)
-        ax3.add_patch(Rectangle((x, yt), t, Ht, color=color, ec='black'))
-        ax3.text(x+t/2, yt+Ht+0.05, name, ha='center', fontsize=7)
-        if defect_type=="Delamination" and i==defect_layer:
-            ax3.add_patch(Rectangle((x-0.01, yt), 0.02, Ht,
-                                    facecolor='white', edgecolor='red', lw=2))
-            ax3.text(x, yt+Ht+0.05, "Delam.", color='red', fontsize=7, ha='left')
-        elif defect_type=="Crack" and i==defect_layer:
-            ax3.plot([x, x+t], [yt+Ht/2]*2, 'k--', lw=2)
-            ax3.text(x+t/2, yt-0.1, "Crack", ha='center', fontsize=7)
-        x += t
-
-    ax3.set_xlim(0, x+0.5)
-    ax3.set_ylim(0, yt+Ht+0.3)
-    ax3.axis('off')
-    ax3.set_title("Side View: Tool → Gap → Layers", fontsize=10)
-    st.pyplot(fig3, use_container_width=True)
+ 
