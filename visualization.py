@@ -69,9 +69,7 @@ def show_visualization():
     ax1.axis('off')
     fig1.suptitle("Cross-Section: Tool → Arm → Sensor → Gap → Pipe Layers", fontsize=12)
     st.pyplot(fig1, use_container_width=True)
- 
-#------------------------------------------------------------------------------
-    # --------- 2) Top View Drawing -----------------------------------------------
+ # --------- 2) Top View Drawing ---------
     fig2 = plt.figure(figsize=(8, 8))
     ax2 = fig2.add_subplot(111)
 
@@ -85,108 +83,78 @@ def show_visualization():
     r_current = r_inner
     layer_radii = []
 
-    
-    # Step 1: Draw pipe layers as full ring segments (Wedges)
-    for i, (_, t, _) in enumerate(layer_data):
-        r_outer = r_current + t
+    # Pipe layers as rings
+    for i, layer in enumerate(layer_data):
+        thickness = layer["thickness"]
         color = cmap(i)
-        
-        ring = Wedge(center=(0, 0),
-                     r=r_outer,
-                     theta1=0,
-                     theta2=360,
-                     width=t,
-                     facecolor=color,
-                     edgecolor=None,
-                     lw=0,
-                     zorder=1)
-        ax2.add_patch(ring)
+        r_outer = r_current + thickness
+
+        ax2.add_patch(Wedge(center=(0, 0),
+                            r=r_outer,
+                            theta1=0, theta2=360,
+                            width=thickness,
+                            facecolor=color,
+                            edgecolor=None,
+                            lw=0))
         layer_radii.append((r_current, r_outer, color))
-        r_current = r_outer    
+        r_current = r_outer
 
-    # Add thin black ring for outer pipe surface
-    outer_radius = r_current  # r_current already includes all layer thickness
-    ax2.add_patch(Circle((0, 0),
-                         radius=outer_radius,
-                         edgecolor='black',
-                         facecolor='none',
-                         lw=1,
-                         zorder=10))
-    
-    # Fluid gap ring
-    ax2.add_patch(Circle((0, 0), r_inner, color='skyblue', ec='black', zorder=3))
+    # Outer pipe surface
+    ax2.add_patch(Circle((0, 0), radius=r_current, facecolor='none', edgecolor='black', lw=1, zorder=10))
 
-    # Tool body
-    ax2.add_patch(Circle((0, 0), tool_r, color='gray', ec='black', zorder=4))
+    # Fluid & Tool
+    ax2.add_patch(Circle((0, 0), r_inner, color='skyblue', ec='black'))
+    ax2.add_patch(Circle((0, 0), tool_r, color='gray', ec='black'))
 
-    # Arms and pads
+    # Arms + Pads
     for ang in [0, 90, 180, 270]:
         rad = np.deg2rad(ang)
-        x0 = tool_r * np.cos(rad)
-        y0 = tool_r * np.sin(rad)
-        x1 = (r_inner - pad_gap) * np.cos(rad)
-        y1 = (r_inner - pad_gap) * np.sin(rad)
-        ax2.plot([x0, x1], [y0, y1], 'red', lw=3, zorder=5)
+        x0, y0 = tool_r * np.cos(rad), tool_r * np.sin(rad)
+        x1, y1 = (r_inner - pad_gap) * np.cos(rad), (r_inner - pad_gap) * np.sin(rad)
+        ax2.plot([x0, x1], [y0, y1], 'red', lw=3)
         ax2.add_patch(Arc((0, 0),
                           2 * (r_inner - pad_gap),
                           2 * (r_inner - pad_gap),
                           theta1=ang - pad_span / 2,
                           theta2=ang + pad_span / 2,
-                          color='red', lw=6, zorder=5))
+                          color='red', lw=6))
 
-    # Optional defects
+    # Defect visual
     if defect_type == "Delamination":
-        r_delam = r_inner + sum(layer_data[i][1] for i in range(defect_layer))
-        delam_ring = Wedge(center=(0, 0),
-                           r=r_delam + 0.01,  # thin white outer ring
-                           theta1=225,
-                           theta2=315,
-                           width=0.05,
-                           facecolor='white',
-                           edgecolor='red',
-                           lw=0.2,
-                           zorder=10)
-        ax2.add_patch(delam_ring)
-        # Add annotation for delamination
-        angle = 292.5
-        rad = np.deg2rad(angle)
-        x = r_delam * np.cos(rad)
-        y = r_delam * np.sin(rad)
-        xt = (r_delam + total_thickness + 1.0) * np.cos(rad)
-        yt = (r_delam + total_thickness + 1.0) * np.sin(rad)
-        ax2.annotate("Delamination",
-            xy=(x , y),
-            xytext=(xt , yt),
-            color='red',
-            fontsize=7,
-            arrowprops=dict(arrowstyle="->", color='red'))
+        r_delam = r_inner + sum(layer_data[i]["thickness"] for i in range(defect_layer))
+        ax2.add_patch(Wedge(center=(0, 0),
+                            r=r_delam + 0.01,
+                            theta1=225, theta2=315,
+                            width=0.05,
+                            facecolor='white', edgecolor='red', lw=0.2, zorder=10))
+        # annotate
+        ang = 292.5
+        rad = np.deg2rad(ang)
+        x, y = r_delam * np.cos(rad), r_delam * np.sin(rad)
+        xt, yt = (r_delam + total_thickness + 1.0) * np.cos(rad), (r_delam + total_thickness + 1.0) * np.sin(rad)
+        ax2.annotate("Delamination", xy=(x, y), xytext=(xt, yt), color='red',
+                     fontsize=7, arrowprops=dict(arrowstyle="->", color='red'))
 
     elif defect_type == "Crack":
-        r_start = r_inner + sum(layer_data[i][1] for i in range(defect_layer))
-        r_end = r_start + layer_data[defect_layer][1]
+        r_start = r_inner + sum(layer_data[i]["thickness"] for i in range(defect_layer))
+        r_end = r_start + layer_data[defect_layer]["thickness"]
         ang = np.deg2rad(10)
-        x1 = r_start * np.cos(ang)
-        y1 = r_start * np.sin(ang)
-        x2 = r_end * np.cos(ang)
-        y2 = r_end * np.sin(ang)
-        ax2.plot([x1, x2], [y1, y2], 'black', lw=2, linestyle='--', zorder=10)
-        # Add annotation for crack
-        ax2.annotate("Crack",
-            xy=((x1 + x2) / 2, (y1 + y2) / 2),
-            xytext=( x2 + total_thickness + 1.0, y2 ),
-            color='black',
-            fontsize=7,
-            arrowprops=dict(arrowstyle="->", color='black'))
-    
+        x1, y1 = r_start * np.cos(ang), r_start * np.sin(ang)
+        x2, y2 = r_end * np.cos(ang), r_end * np.sin(ang)
+        ax2.plot([x1, x2], [y1, y2], 'black', lw=2, linestyle='--')
+        ax2.annotate("Crack", xy=((x1+x2)/2, (y1+y2)/2),
+                     xytext=(x2 + 1.0, y2),
+                     arrowprops=dict(arrowstyle="->", color='black'), fontsize=7)
+
+    # Layer annotations
     for i, (r_in, r_out, color) in enumerate(layer_radii):
         angle = 30 + i * 25
         rad = np.deg2rad(angle)
         x = (r_out - 0.1) * np.cos(rad)
         y = (r_out - 0.1) * np.sin(rad)
-        xt = (r_out + total_thickness + 1.0) * np.cos(rad)
-        yt = (r_out + total_thickness + 1.0) * np.sin(rad)
-        ax2.annotate(f"Layer {i+1}",
-                     xy=(x, y), xytext=(xt, yt),
+        xt = (r_out + 1.2) * np.cos(rad)
+        yt = (r_out + 1.2) * np.sin(rad)
+        ax2.annotate(f"Layer {i+1}", xy=(x, y), xytext=(xt, yt),
                      color=color, fontsize=7,
                      arrowprops=dict(arrowstyle="->", color=color))
 
