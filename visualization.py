@@ -202,49 +202,40 @@ def show_visualization():
 
     st.pyplot(fig2)
 
-    # --------- 3) Side View Drawing ---------
-    fig3 = plt.figure(figsize=(12, 2))
-    ax3 = fig3.add_subplot(111)
+       # --------- 3) Side View Drawing ---------
+    fig3, ax3 = plt.subplots(figsize=(12, 2))
+    x, Ht, yt = 0.1, 0.5, 0.2
 
-    x = 0.1
-    H_tool = 0.5
-    y_tool = 0.2
-    cmap = plt.get_cmap("tab20")
-
-    # Tool body (short section)
+    # Tool Body (longitudinal)
     L_tool = 1.0
-    ax3.add_patch(Rectangle((x, y_tool), L_tool, H_tool, color='gray'))
-    ax3.text(x + L_tool / 2, y_tool + H_tool + 0.05, "Tool Body", ha='center', fontsize=7)
+    ax3.add_patch(Rectangle((x, yt), L_tool, Ht, color='gray'))
+    ax3.text(x+L_tool/2, yt+Ht+0.05, "Tool Body", ha='center', fontsize=7)
     x += L_tool
 
-    # Fluid gap
-    L_gap = 0.3
-    ax3.add_patch(Rectangle((x, y_tool), L_gap, H_tool, color='skyblue'))
-    ax3.text(x + L_gap / 2, y_tool + H_tool + 0.05, "Fluid Gap", ha='center', fontsize=7)
+    # Fluid Gap
+    L_gap = DEFAULT_GAP_INCH
+    ax3.add_patch(Rectangle((x, yt), L_gap, Ht, color='skyblue'))
+    ax3.text(x+L_gap/2, yt+Ht+0.05, "Fluid Gap", ha='center', fontsize=7)
     x += L_gap
 
-    # Pipe layers
+    # Pipe Layers Longitudinal
     for i, layer in enumerate(layer_data):
         t = layer["thickness"]
-        Z = layer["Z"]
         name = layer.get("name", f"Layer {i+1}")
         color = cmap(i)
-        ax3.add_patch(Rectangle((x, y_tool), t, H_tool, color=color, ec='black'))
-        ax3.text(x + t / 2, y_tool + H_tool + 0.05, name, ha='center', fontsize=7)
-
-        if defect_type == "Delamination" and i == defect_layer:
-            ax3.add_patch(Rectangle((x - 0.01, y_tool), 0.02, H_tool,
-                                    color='white', ec='red', lw=2))
-            ax3.text(x, y_tool + H_tool + 0.05, "Delam.", color='red', fontsize=7, ha='left')
-
-        elif defect_type == "Crack" and i == defect_layer:
-            ax3.plot([x, x + t], [y_tool + H_tool / 2] * 2, 'k--', lw=2)
-            ax3.text(x + t / 2, y_tool - 0.1, "Crack", ha='center', color='black', fontsize=7)
-
+        ax3.add_patch(Rectangle((x, yt), t, Ht, color=color, ec='black'))
+        ax3.text(x+t/2, yt+Ht+0.05, name, ha='center', fontsize=7)
+        if defect_type=="Delamination" and i==defect_layer:
+            ax3.add_patch(Rectangle((x-0.01, yt), 0.02, Ht,
+                                    facecolor='white', edgecolor='red', lw=2))
+            ax3.text(x, yt+Ht+0.05, "Delam.", color='red', fontsize=7, ha='left')
+        elif defect_type=="Crack' and i==defect_layer:
+            ax3.plot([x, x+t], [yt+Ht/2]*2, 'k--', lw=2)
+            ax3.text(x+t/2, yt-0.1, "Crack", ha='center', fontsize=7)
         x += t
 
-    ax3.set_xlim(0, x + 0.5)
-    ax3.set_ylim(0, y_tool + H_tool + 0.3)
+    ax3.set_xlim(0, x+0.5)
+    ax3.set_ylim(0, yt+Ht+0.3)
+    ax3.axis('off')
     ax3.set_title("Side View: Tool → Gap → Layers", fontsize=10)
-    ax3.axis("off")
-    st.pyplot(fig3)
+    st.pyplot(fig3, use_container_width=True)
