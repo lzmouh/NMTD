@@ -184,7 +184,7 @@ def show_visualization():
             ax3.add_patch(Rectangle((x-0.01, yt), 0.02, Ht,
                                     facecolor='white', edgecolor='red', lw=2))
             ax3.text(x, yt+Ht+0.05, "Delam.", color='red', fontsize=7, ha='left')
-        elif defect_type=="Crack' and i==defect_layer:
+        elif defect_type=="Crack" and i==defect_layer:
             ax3.plot([x, x+t], [yt+Ht/2]*2, 'k--', lw=2)
             ax3.text(x+t/2, yt-0.1, "Crack", ha='center', fontsize=7)
         x += t
