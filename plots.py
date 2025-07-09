@@ -187,7 +187,7 @@ def show_plots():
     )
     df_mode1 = df[df["Mode"] == 1]
     for _, row in df_mode1.iterrows():
-        fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
+        fig1.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
                        annotation_text=row["Layer"], annotation_position="top right")
     fig1.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
                        hovermode="x unified", height=600)
