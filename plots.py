@@ -10,116 +10,128 @@ from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 
 def simulate_multimode(config):
     """
-    Simulate raw & compressed A-scan with multiple modes and per-layer physics.
+    Simulate raw and pulse-compressed A-scan using multiple modes.
     Returns:
-      t_rx       : time axis (s)
-      rx         : raw A-scan
-      compressed : pulse-compressed A-scan
-      df_params  : DataFrame of echo parameters for each layer & mode
+      t_rx       : 1D time axis (s)
+      rx         : raw A-scan (amplitude)
+      compressed : matched-filter output
+      df_params  : DataFrame of echo parameters (mode, layer, R, T, time, amp)
     """
-    # Unpack config
-    fs         = config["sampling_rate"]
-    t_chirp    = np.array(config["tx_chirp_t"])
-    tx         = np.array(config["tx_chirp_waveform"])
-    layers     = config["layer_data"]
-    defect     = config["defect_type"]
-    defect_idx = config["defect_layer"] - 1
+    # --- Unpack config ---
+    fs        = config["sampling_rate"]              # Hz
+    t_chirp   = np.array(config["tx_chirp_t"])       # s
+    tx        = np.array(config["tx_chirp_waveform"])
+    fluid_vel = config["fluid_velocity"]             # m/s
+    defect    = config["defect_type"]
+    defect_i  = config["defect_layer"] - 1           # zero-based
+    layers    = config["layer_data"]                 # list of dicts
 
-    # Define modes: velocity (m/s), α0 (dB/cm/MHz), exponent n
-    modes = [(config["fluid_velocity"], 0.0, 0.0)]  # fluid-gap mode
-    for lyr in config["layer_data"]:
-        modes.append((lyr["v"], lyr["alpha0"], lyr["n_exp"]))
-    freq0 = (config["chirp_start_mhz"] + config["chirp_end_mhz"])/2  # MHz
+    # central frequency for attenuation scaling (MHz)
+    f0_mhz = (config["chirp_start_mhz"] + config["chirp_end_mhz"]) / 2
 
-    # Compute depths for fluid gap + each interface
-    gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
+    # --- Build depths: fluid gap + each layer interface ---
+    gap_m  = DEFAULT_GAP_INCH * INCH_TO_METER
     depths = [gap_m]
-    for _, thickness, _ in layers:
-        depths.append(depths[-1] + thickness * INCH_TO_METER)
+    for lyr in layers:
+        depths.append(depths[-1] + lyr["thickness"] * INCH_TO_METER)
 
-    # Reflection & transmission per interface
-    Z_prev = config["Z_fluid"]
+    # --- Reflection & transmission for each layer interface ---
     R_list, T_list = [], []
-    for name, thickness, Z in layers:
-        R = (Z - Z_prev)/(Z + Z_prev)
+    Z_prev = config["Z_fluid"]
+    for lyr in layers:
+        Z_curr = lyr["Z"]
+        R = (Z_curr - Z_prev) / (Z_curr + Z_prev)
         T = 1 - R**2
-        R_list.append(R); T_list.append(T)
-        Z_prev = Z
+        R_list.append(R)
+        T_list.append(T)
+        Z_prev = Z_curr
 
-    # Allocate raw rx
-    max_delay_s = max(2*d/DEFAULT_VELOCITY for d in depths) + len(t_chirp)/fs
-    n_rx = int(max_delay_s * fs) + len(t_chirp)
-    rx = np.zeros(n_rx)
-    t_rx = np.arange(n_rx)/fs
+    # --- Define modes: first the fluid gap mode, then one per layer ---
+    # fluid gap: no attenuation or dispersion modeled here, just full reflection
+    modes = [(fluid_vel, 0.0, 0.0)] + [
+        (lyr["v"], lyr["alpha0"], lyr["n_exp"]) for lyr in layers
+    ]
 
-    # Collect parameters
+    # --- Prepare output arrays ---
+    max_delay_s = max(2 * d / DEFAULT_VELOCITY for d in depths) + len(t_chirp)/fs
+    n_rx = int(np.ceil(max_delay_s * fs)) + len(t_chirp)
+    rx   = np.zeros(n_rx)
+    t_rx = np.arange(n_rx) / fs
+
+    # --- Prepare to record parameters ---
     records = []
 
-    # Simulate each mode and each interface echo
-    for m_idx, (v, alpha0, n_exp) in enumerate(modes):
-        # frequency domain chirp
-        P = fft(tx)
-        freqs = fftfreq(len(tx), 1/fs)
+    # --- Per-mode, per-interface simulation ---
+    freqs = fftfreq(len(tx), 1/fs)
+    P     = fft(tx)
 
-        # attenuation filter H(f) and dispersion D(f)
-        # we'll apply same for all interfaces, then time-shift
-        alpha_f = alpha0 * (np.abs(freqs)/1e6)**n_exp * 100  # dB/m
-        H = 10**(-alpha_f * (depths[-1]) / 20)  # worst-case path
-        beta = 0.05  # dispersion coefficient
-        c_f = v * (1 + beta * (np.abs(freqs)/1e6)**0.5)
-        # we'll apply per depth inside loop
+    for m_idx, (v, alpha0, n_exp) in enumerate(modes):
+        # frequency‐dependent attenuation filter (per path)
+        # we'll compute per-depth inside the loop
+        # dispersion coefficient (example)
+        beta = 0.05
 
         for i, depth in enumerate(depths):
-            # two-way travel
+            # 1) two-way travel time
             tau_s = 2 * depth / v
-            # phase shift for dispersion
-            D = np.exp(-1j * 2*np.pi*freqs * (2*depth/c_f))
-            # attenuation at this depth
+
+            # 2) attenuation H(f) = 10^{-α(f)*path/20}
             path_cm = depth * 100
-            H_i = 10**(-alpha0 * (np.abs(freqs)/1e6)**n_exp * path_cm / 20)
-            # combined filter
-            P_i = P * H_i * D
+            alpha_f = alpha0 * (np.abs(freqs)/1e6)**n_exp * 100  # dB/m
+            H = 10**(-alpha_f * depth / 20)
+
+            # 3) dispersion phase D(f) = exp(-j·2π·f·(2·depth/c(f)))
+            c_f = v * (1 + beta * (np.abs(freqs)/1e6)**0.5)
+            D   = np.exp(-1j * 2 * np.pi * freqs * (2*depth / c_f))
+
+            # 4) apply filters in freq domain and invert
+            P_i = P * H * D
             p_i = np.real(np.fft.ifft(P_i))
 
-            # reflection or full for fluid gap
+            # 5) determine reflection coefficient
             if i == 0:
+                # fluid-gap echo: full reflection (polarity invert)
                 R = -1.0
                 T = 1.0
             else:
                 R = R_list[i-1]
                 T = T_list[i-1]
 
-            # defect override
-            if defect=="Delamination" and (i-1)==defect_idx:
-                R *= 0.7; T *= 0.7
-            if defect=="Crack" and (i-1)==defect_idx:
-                R *= 0.5; T *= 0.5
+            # 6) defect override
+            if defect == "Delamination" and (i-1) == defect_i:
+                R *= 0.7;  T *= 0.7
+            if defect == "Crack"        and (i-1) == defect_i:
+                R *= 0.5;  T *= 0.5
 
             amp = abs(R)
-            idx = int(tau_s * fs)
+
+            # 7) sum into raw A-scan at shifted index
+            idx = int(round(tau_s * fs))
             rx[idx:idx+len(p_i)] += amp * p_i
 
-            # record params
-            if i>0:  # skip fluid in table
+            # 8) record parameters (skip i==0 fluid-gap if you like)
+            if i > 0:
                 records.append({
-                    "Mode": m_idx+1,
-                    "Layer": layers[i-1][0],
-                    "Thickness (in)": layers[i-1][1],
-                    "Z (MRayl)": layers[i-1][2],
-                    "α0 (dB/cm/MHz)": round(alpha0,2),
-                    "n exp": round(n_exp,2),
-                    "R": round(R,3),
-                    "T": round(T,3),
-                    "Time (µs)": round(tau_s*1e6,2),
-                    "Amp": round(amp,3)
+                    "Mode":           m_idx + 1,
+                    "Layer":          layers[i-1]["name"],
+                    "Thickness (in)": round(layers[i-1]["thickness"], 3),
+                    "Z (MRayl)":      round(layers[i-1]["Z"], 3),
+                    "α0":             round(alpha0, 3),
+                    "n exp":          round(n_exp, 3),
+                    "R":              round(R, 3),
+                    "T":              round(T, 3),
+                    "Time (µs)":      round(tau_s * 1e6, 3),
+                    "Amp":            round(amp, 3)
                 })
 
-    # Matched‐filter compression
+    # --- Pulse-compression (matched filter) ---
     compressed = fftconvolve(rx, tx[::-1], mode='same')
 
-    df = pd.DataFrame.from_records(records)
+    # --- Build DataFrame ---
+    df_params = pd.DataFrame.from_records(records)
 
-    return t_rx, rx, compressed, freqs, df
+    return t_rx, rx, compressed, df_params
+
 
 def show_plots():
     st.title("📊 Multimode A-Scan Simulation")
