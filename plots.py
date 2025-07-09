@@ -174,6 +174,8 @@ def show_plots():
     fig1.add_trace(go.Scatter(x=t_rx*1e6, y=rx, line=dict(color="green"), name="Raw"))
     
     # --- add the vertical line & annotation for the fluid gap ---
+    fluid_row = df[df["Layer"] == "Fluid–Gap"].iloc[0]
+    tt_fluid_us = fluid_row["Time (µs)"]
     fig1.add_vline(
         x=tt_fluid,
         line_dash="dash",
