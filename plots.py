@@ -181,21 +181,10 @@ def show_plots():
         x=tt_fluid_us,
         line_dash="dash",
         line_color="blue",
-        annotation_text="Fluid‐Gap Echo",
+        annotation_text="Fluid‐Gap",
         annotation_position="top left",
         annotation_font_color="blue"
     )
-    
-    # Annotate only Mode 1 echoes
-    for _, row in df_mode1.iterrows():
-        fig1.add_vline(
-            x = row["Time (µs)"],
-            line_dash = "dot",
-            line_color = "gray",
-            annotation_text = f"{row['Layer']}",
-            textangle=90,
-            annotation_position = "top right"
-        )
 
     fig1.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
                        hovermode="x unified", height=600)
