@@ -49,20 +49,26 @@ def show_visualization():
     x += W_gap
 
     # Pipe Layers
-    for i, (layer, thikness, Z) in enumerate(layer_data):
-        W = t
+    for i, layer in enumerate(layer_data):
+        thickness = layer["thickness"]
+        Z = layer["Z"]
+        name = layer.get("name", f"Layer {i+1}")
+    
+        W = thickness
         color = cmap(i)
         ax1.add_patch(Rectangle((x, y), W, H, color=color, ec='black'))
-        ax1.text(x + W / 2, y + H + 0.05, f"Layer {i+1}\nZ={Z:.2f}\n{t:.2f}\"",
+        ax1.text(x + W / 2, y + H + 0.05, f"{name}\nZ={Z:.2f}\n{thickness:.2f}\"",
                  ha='center', fontsize=7)
-
+    
         if defect_type == "Delamination" and i == defect_layer:
             ax1.add_patch(Rectangle((x - 0.01, y), 0.02, H,
                                     color='white', ec='red', lw=2))
             ax1.text(x, y + H + 0.05, "Delam.", color='red', fontsize=7, ha='left')
+    
         elif defect_type == "Crack" and i == defect_layer:
             ax1.plot([x, x + W], [y + H / 2, y + H / 2], 'k--', lw=2)
             ax1.text(x + W / 2, y - 0.1, "Crack", ha='center', color='black', fontsize=7)
+    
         x += W
 
     ax1.set_xlim(0, x + 0.1)
