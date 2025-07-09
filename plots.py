@@ -34,8 +34,8 @@ def simulate_multimode(config):
     # Compute depths for fluid gap + each interface
     gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
     depths = [gap_m]
-    for _, thicknessin, _ in layers:
-        depths.append(depths[-1] + thicknessin * INCH_TO_METER)
+    for _, thickness, _ in layers:
+        depths.append(depths[-1] + thickness * INCH_TO_METER)
 
     # Reflection & transmission per interface
     Z_prev = config["Z_fluid"]
