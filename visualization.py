@@ -7,11 +7,12 @@ from config import INCH_TO_METER
 def show_visualization():
     st.title("📷 Pipe and Tool Visualization")
     config = st.session_state["config"]
+     # --- Unpack config ---
     layer_data = config["layer_data"]
     Z_fluid = config["Z_fluid"]
     defect_type = config["defect_type"]
     defect_layer = config["defect_layer"] - 1  # convert to zero-index
-    total_thickness = config.get("total_thickness", 1.0)
+    total_thickness = config.get("total_thickness")
     cmap = plt.get_cmap("tab20")
     
     # --------- 1) Horizontal Cross Section (FULL WIDTH) ---------
