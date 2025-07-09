@@ -185,7 +185,10 @@ def show_plots():
         annotation_position="top left",
         annotation_font_color="blue"
     )
-
+    df_mode1 = df[df["Mode"] == 1]
+    for _, row in df_mode1.iterrows():
+        fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
+                       annotation_text=row["Layer"], annotation_position="top right")
     fig1.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
                        hovermode="x unified", height=600)
     st.plotly_chart(fig1, use_container_width=True)
@@ -194,7 +197,6 @@ def show_plots():
     st.subheader("🔴 Pulse-Compressed A-Scan")
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=t_rx*1e6, y=compressed, line=dict(color="firebrick"), name="Compressed"))
-    df_mode1 = df[df["Mode"] == 1]
     for _, row in df_mode1.iterrows():
         fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
                        annotation_text=row["Layer"], annotation_position="top right")
