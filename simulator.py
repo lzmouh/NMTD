@@ -104,8 +104,8 @@ def show_simulator():
             "n_exp":      n_exp
         })
     
-    config["layer_data"] = new_layers
-    st.session_state["config"] = config
+    #config["layer_data"] = new_layers
+    #st.session_state["config"] = config
 
     # Calculate and display total thickness
     config["total_thickness"] = sum([layer[1] for layer in config["layer_data"]])
