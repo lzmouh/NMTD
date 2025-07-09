@@ -109,8 +109,27 @@ def simulate_multimode(config):
             idx = int(round(tau_s * fs))
             rx[idx:idx+len(p_i)] += amp * p_i
 
-            # 8) record parameters (skip i==0 fluid-gap if you like)
-            if i > 0:
+            # before your mode loop, compute tt_fluid_us
+            gap_m    = DEFAULT_GAP_INCH * INCH_TO_METER
+            tt_fluid = 2 * gap_m / fluid_vel * 1e6    # µs
+
+            # 8) record parameters, now including the fluid‐gap interface
+            if i == 0:
+                # record the fluid‐gap echo
+                records.append({
+                    "Mode":           m_idx + 1,
+                    "Layer":          "Fluid Gap",
+                    "Thickness (in)": round(DEFAULT_GAP_INCH, 3),
+                    "Z (MRayl)":      round(config["Z_fluid"], 3),
+                    "α0":             0.0,                 # no attenuation here
+                    "n exp":          0.0,
+                    "R":              -1.0,                # full reflection
+                    "T":              1.0,
+                    "Time (µs)":      round(tt_fluid, 3),
+                    "Amp":            round(abs(R), 3)
+                })
+            elif i > 0:
+                # record the layer‐interface echo as before
                 records.append({
                     "Mode":           m_idx + 1,
                     "Layer":          layers[i-1]["name"],
@@ -153,6 +172,16 @@ def show_plots():
     st.subheader("🟢 Raw Received A-Scan")
     fig1 = go.Figure()
     fig1.add_trace(go.Scatter(x=t_rx*1e6, y=rx, line=dict(color="green"), name="Raw"))
+    
+    # --- add the vertical line & annotation for the fluid gap ---
+    fig1.add_vline(
+        x=tt_fluid,
+        line_dash="dash",
+        line_color="blue",
+        annotation_text="Fluid‐Gap Echo",
+        annotation_position="top left",
+        annotation_font_color="blue"
+    )
     
     # Annotate only Mode 1 echoes
     for _, row in df_mode1.iterrows():
