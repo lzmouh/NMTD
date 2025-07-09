@@ -129,8 +129,10 @@ def simulate_multimode(config):
 
     # --- Build DataFrame ---
     df_params = pd.DataFrame.from_records(records)
+    # Compute frequency axis
+    freqs = np.fft.fftfreq(len(compressed), d=1/config["sampling_rate"])
 
-    return t_rx, rx, compressed, df_params
+    return t_rx, rx, compressed, freqs, df_params
 
 
 def show_plots():
