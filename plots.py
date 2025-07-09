@@ -193,11 +193,12 @@ def show_plots():
             line_dash = "dot",
             line_color = "gray",
             annotation_text = f"{row['Layer']}",
+            textangle=90,
             annotation_position = "top right"
         )
 
     fig1.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
-                       hovermode="x unified", height=350)
+                       hovermode="x unified", height=600)
     st.plotly_chart(fig1, use_container_width=True)
 
     # Compressed A-scan
