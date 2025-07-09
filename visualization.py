@@ -49,7 +49,7 @@ def show_visualization():
     x += W_gap
 
     # Pipe Layers
-    for i, (label, t, Z) in enumerate(layer_data):
+    for i, (layer, thikness, Z) in enumerate(layer_data):
         W = t
         color = cmap(i)
         ax1.add_patch(Rectangle((x, y), W, H, color=color, ec='black'))
