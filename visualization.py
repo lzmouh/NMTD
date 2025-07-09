@@ -12,7 +12,7 @@ def show_visualization():
     Z_fluid      = config["Z_fluid"]
     defect_type  = config["defect_type"]
     defect_layer = config["defect_layer"] - 1  # zero-based
-    total_thick  = config.get("total_thickness", sum(l["thickness"] for l in layer_data))
+    total_thickness  = config.get("total_thickness", sum(l["thickness"] for l in layer_data))
     cmap         = plt.get_cmap("tab20")
 
     # --------- 1) Horizontal Cross Section ---------
