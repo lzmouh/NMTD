@@ -209,7 +209,7 @@ def show_plots():
         fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
                        annotation_text=row["Layer"], annotation_position="top right")
     fig2.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
-                       hovermode="x unified", height=350)
+                       hovermode="x unified", height=600)
     st.plotly_chart(fig2, use_container_width=True)
 
     # 3) Frequency-domain of compressed signal
@@ -226,6 +226,6 @@ def show_plots():
     ))
     fig3.update_layout(
         xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
-        height=350, hovermode="x unified"
+        height=600, hovermode="x unified"
     )
     st.plotly_chart(fig3, use_container_width=True)
