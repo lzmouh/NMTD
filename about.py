@@ -6,17 +6,17 @@ def show_about():
 The **Non-Metallic Tubular Defectoscope (NMTD)** simulator is a tool designed to test and visualize ultrasonic signals
 in multilayer non-metallic pipes like GRE, HDPE, or RTP used in the oil & gas sector.
 
-### 🔍 Key Capabilities
+### Purpose
+To support the evaluation and integrity logging of non-metallic tubulars, which cannot be tested by conventional metallic inspection tools.
+This tool aids design, development, and early feasibility testing of ultrasonic-based defectoscopy.
+""")
+
+### Key Capabilities
 - Simulate ultrasonic A-scan response with or without defects.
 - Display amplitude and time shift due to delamination or cracks.
 - Visualize cross-section and top view of the pipe and sensor deployment.
 
-### 🔧 Technologies
-- **Streamlit** for the interface
-- **NumPy** for signal simulation
-- **Plotly** and **Matplotlib** for plotting and visualization
+### Developped by Mohamed LARBI ZEGHLACHE
+EXPEC-ARC / PTD / AWSFA - 2025    
 
-### 🎯 Purpose
-To support the evaluation and integrity logging of non-metallic tubulars, which cannot be tested by conventional metallic inspection tools.
-This tool aids design, development, and early feasibility testing of ultrasonic-based defectoscopy.
 """)
