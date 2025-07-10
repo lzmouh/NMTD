@@ -5,7 +5,7 @@ import numpy as np
 from config import INCH_TO_METER, DEFAULT_GAP_INCH
 
 def show_visualization():
-    st.title("📷 Pipe and Tool Visualization")
+    st.title("Pipe and Tool Visualization")
 
     config       = st.session_state["config"]
     layer_data   = config["layer_data"]
