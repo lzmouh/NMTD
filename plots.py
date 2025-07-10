@@ -10,10 +10,10 @@ from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 
 def simulate_multimode(config):
     """
-    Simulate raw and pulse-compressed A-scan using multiple modes.
+    Simulate raw and pulse-compressed Signal using multiple modes.
     Returns:
       t_rx       : 1D time axis (s)
-      rx         : raw A-scan (amplitude)
+      rx         : raw Signal (amplitude)
       compressed : matched-filter output
       df_params  : DataFrame of echo parameters (mode, layer, R, T, time, amp)
     """
@@ -105,7 +105,7 @@ def simulate_multimode(config):
 
             amp = abs(R)
 
-            # 7) sum into raw A-scan at shifted index
+            # 7) sum into raw Signal at shifted index
             idx = int(round(tau_s * fs))
             rx[idx:idx+len(p_i)] += amp * p_i
 
@@ -155,7 +155,7 @@ def simulate_multimode(config):
 
 
 def show_plots():
-    st.title("📊 Multimode A-Scan Simulation")
+    st.title("Multimode Signal Simulation")
 
     # Run sim
     config = st.session_state["config"]
@@ -168,8 +168,8 @@ def show_plots():
     st.subheader("📋 Direct Mode Echo Parameters")
     st.dataframe(df_mode1, use_container_width=True)
 
-    # Raw A-scan
-    st.subheader("🟢 Raw Received A-Scan")
+    # Raw Signal
+    st.subheader(Raw Received Signal")
     fig1 = go.Figure()
     fig1.add_trace(go.Scatter(x=t_rx*1e6, y=rx, line=dict(color="green"), name="Raw"))
     
@@ -193,8 +193,8 @@ def show_plots():
                        hovermode="x unified", height=600)
     st.plotly_chart(fig1, use_container_width=True)
 
-    # Compressed A-scan
-    st.subheader("🔴 Pulse-Compressed A-Scan")
+    # Compressed Signal
+    st.subheader("Pulse-Compressed Signal")
     fig2 = go.Figure()
     fig2.add_trace(go.Scatter(x=t_rx*1e6, y=compressed, line=dict(color="firebrick"), name="Compressed"))
     for _, row in df_mode1.iterrows():
@@ -205,7 +205,7 @@ def show_plots():
     st.plotly_chart(fig2, use_container_width=True)
 
     # 3) Frequency-domain of compressed signal
-    st.subheader("📈 Frequency Spectrum (Compressed A-Scan)")
+    st.subheader("Frequency Spectrum (Compressed Signal)")
     fft_vals = np.abs(np.fft.fft(compressed))
     freqs   = np.fft.fftfreq(len(compressed), d=1/config["sampling_rate"])
     mask    = freqs >= 0
