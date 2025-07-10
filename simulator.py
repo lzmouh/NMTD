@@ -57,6 +57,16 @@ def show_simulator():
             config["layer_data"].append([f"Layer {len(config['layer_data'])+1}", 0.2, 2.5])
 
     st.markdown("### 📦 Layers Configuration")
+    # Ensure all layers are in dict format
+    for i in range(len(config["layer_data"])):
+        if isinstance(config["layer_data"][i], list):
+            label, thickness, Z = config["layer_data"][i]
+            config["layer_data"][i] = {
+                "name": label,
+                "thickness": thickness,
+                "Z": Z,
+                "material": "GRE (Glass-Reinforced Epoxy)"  # default
+            }
     new_layers = []
     for i in range(config["num_layers"]):
         # two columns: thickness & impedance
