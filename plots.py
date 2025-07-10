@@ -165,26 +165,18 @@ def show_plots():
     
     # select only Mode 1 rows
     df_mode1 = df[df["Mode"] == 1]
-    st.subheader("📋 Direct Mode Echo Parameters")
+    st.subheader("Direct Mode Echo Parameters")
     st.dataframe(df_mode1, use_container_width=True)
 
     # Raw Signal
-    st.subheader(Raw Received Signal")
+    st.subheader("Raw Received Signal")
     fig1 = go.Figure()
     fig1.add_trace(go.Scatter(x=t_rx*1e6, y=rx, line=dict(color="green"), name="Raw"))
     
     # --- add the vertical line & annotation for the fluid gap ---
     gap_m    = DEFAULT_GAP_INCH * INCH_TO_METER
     tt_fluid_us = 2 * gap_m / config["fluid_velocity"] * 1e6
-    
-    fig1.add_vline(
-        x=tt_fluid_us,
-        line_dash="dash",
-        line_color="blue",
-        annotation_text="Fluid‐Gap",
-        annotation_position="top left",
-        annotation_font_color="blue"
-    )
+
     df_mode1 = df[df["Mode"] == 1]
     for _, row in df_mode1.iterrows():
         fig1.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
