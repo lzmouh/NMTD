@@ -1,7 +1,7 @@
 import streamlit as st
 
 def show_about():
-    st.title("ℹ️ About the NMTD Simulator")
+    st.title("About the NMTD Simulator")
     st.markdown("""
 The **Non-Metallic Tubular Defectoscope (NMTD)** simulator is a tool designed to test and visualize ultrasonic signals
 in multilayer non-metallic pipes like GRE, HDPE, or RTP used in the oil & gas sector.
