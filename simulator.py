@@ -17,7 +17,7 @@ def generate_tx_chirp(fs, sweep_s, f_start, f_end):
     return t, tx
 
 def show_simulator():
-    st.title("🔍 NMTD Ultrasonic Response Simulator")
+    st.title("NMTD Ultrasonic Response Simulator")
 
     # --- Initialize default config if missing ---
     if "config" not in st.session_state or not st.session_state.get("config"):
@@ -56,7 +56,7 @@ def show_simulator():
         while len(config["layer_data"]) < config["num_layers"]:
             config["layer_data"].append([f"Layer {len(config['layer_data'])+1}", 0.2, 2.5])
 
-    st.markdown("### 📦 Layers Configuration")
+    st.markdown("### Layers Configuration")
     # Ensure all layers are in dict format
     for i in range(len(config["layer_data"])):
         if isinstance(config["layer_data"][i], list):
@@ -119,11 +119,11 @@ def show_simulator():
 
     # Calculate and display total thickness
     config["total_thickness"] = sum(layer["thickness"] for layer in config["layer_data"])
-    st.markdown(f"**📏 Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
+    st.markdown(f"**Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
     st.session_state["config"] = config
 
     # --- DEFECT SETTINGS ---
-    st.subheader("📌 Defect Settings")
+    st.subheader("Defect Settings")
     c1, c2 = st.columns(2)
     with c1:
         config["defect_type"] = st.selectbox(
@@ -136,7 +136,7 @@ def show_simulator():
         )
 
     # --- Chirp settings ---
-    st.subheader("📡 Transmitter Chirp Settings")
+    st.subheader("Transmitter Chirp Settings")
     col1, col2, col3 = st.columns(3)
     with col1:
         # in MHz
@@ -162,7 +162,7 @@ def show_simulator():
     col1, col2 = st.columns(2)
     with col1:
         # Time‐domain plot
-        st.subheader("🟡 Transmitted Chirp Waveform")
+        st.subheader("Transmitted Chirp Waveform")
         fig, ax = plt.subplots(figsize=(6, 2))
         ax.plot(t_chirp * 1e6, tx_chirp)
         ax.set_xlabel("Time (µs)")
@@ -173,7 +173,7 @@ def show_simulator():
 
     with col2:
         # Frequency‐domain plot
-        st.subheader("🔊 Chirp Frequency Spectrum")
+        st.subheader("Chirp Frequency Spectrum")
         TX_FFT = np.fft.fft(tx_chirp)
         freqs = np.fft.fftfreq(len(tx_chirp), d=1/fs)
         fig2, ax2 = plt.subplots(figsize=(6, 2))
