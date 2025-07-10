@@ -17,5 +17,6 @@ This tool aids design, development, and early feasibility testing of ultrasonic-
 
 ### Developed by: 
 **Mohamed LARBI ZEGHLACHE**
-#*EXPEC-ARC / PTD / AWSFA - 2025*
+
+*EXPEC-ARC / PTD / AWSFA - 2025*
 """)
