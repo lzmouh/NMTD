@@ -9,14 +9,12 @@ in multilayer non-metallic pipes like GRE, HDPE, or RTP used in the oil & gas se
 ### Purpose
 To support the evaluation and integrity logging of non-metallic tubulars, which cannot be tested by conventional metallic inspection tools.
 This tool aids design, development, and early feasibility testing of ultrasonic-based defectoscopy.
-""")
 
 ### Key Capabilities
 - Simulate ultrasonic A-scan response with or without defects.
 - Display amplitude and time shift due to delamination or cracks.
 - Visualize cross-section and top view of the pipe and sensor deployment.
 
-### Developped by Mohamed LARBI ZEGHLACHE
-EXPEC-ARC / PTD / AWSFA - 2025    
-
+### Developped by: Mohamed LARBI ZEGHLACHE
+EXPEC-ARC / PTD / AWSFA - 2025
 """)
