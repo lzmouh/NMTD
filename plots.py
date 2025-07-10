@@ -108,7 +108,7 @@ def show_plots():
 
     # Run sim
     config = st.session_state["config"]
-    t_rx, rx, compressed, freqs, df = simulate_multimode(config)
+    t_rx, rx, compressed, freqs, df_params = simulate_multimode(config)
 
     # Table of parameters
     
