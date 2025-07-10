@@ -100,15 +100,15 @@ def simulate_multimode(config):
                 })
 
     compressed = fftconvolve(rx, tx[::-1], mode='same')
-    df_params = pd.DataFrame.from_records(records)
-    return t_rx, rx, compressed, freqs, df_params
+    df = pd.DataFrame.from_records(records)
+    return t_rx, rx, compressed, freqs, df
 
 def show_plots():
     st.title("Multimode Signal Simulation")
 
     # Run sim
     config = st.session_state["config"]
-    t_rx, rx, compressed, freqs, df_params = simulate_multimode(config)
+    t_rx, rx, compressed, freqs, df = simulate_multimode(config)
 
     # Table of parameters
     
