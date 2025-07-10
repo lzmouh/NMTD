@@ -15,6 +15,7 @@ This tool aids design, development, and early feasibility testing of ultrasonic-
 - Display amplitude and time shift due to delamination or cracks.
 - Visualize cross-section and top view of the pipe and sensor deployment.
 
-### Developped by: Mohamed LARBI ZEGHLACHE
+### Developed by: 
+**Mohamed LARBI ZEGHLACHE**
 EXPEC-ARC / PTD / AWSFA - 2025
 """)
