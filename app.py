@@ -6,6 +6,7 @@ from plots import show_plots
 from plot2 import show_plots2
 from visualization import show_visualization
 from about import show_about
+from test import show_test
 from streamlit_option_menu import option_menu
 
 st.set_page_config(page_title="NMTD App", layout="wide")
@@ -52,4 +53,4 @@ elif page == "Visualization":
 elif page == "About":
     show_about()
 elif page == "Test":
-    test.py
+    show_test()
