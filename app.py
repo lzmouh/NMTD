@@ -13,7 +13,7 @@ st.set_page_config(page_title="NMTD App", layout="wide")
 # Sidebar navigation
 with st.sidebar:
     page = option_menu(
-        menu_title="🧪 NMTD Navigation",
+        menu_title="NMTD Menu",
         options=["Simulator", "Plots", "Plot2", "Visualization", "About"],
         icons=["cpu", "bar-chart-line", "bounding-box", "info-circle"],
         default_index=0,
@@ -47,8 +47,6 @@ if page == "Simulator":
     show_simulator()
 elif page == "Plots":
     show_plots()
-elif page == "Plot2":
-    show_plots2()
 elif page == "Visualization":
     show_visualization()
 elif page == "About":
