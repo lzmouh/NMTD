@@ -115,28 +115,50 @@ def simulate_multimode(config):
     return t_rx, rx, compressed, freqs, df
 
 def show_plots():
-    st.title("📡 Ultrasonic A-Scan Simulation")
+    st.title("Non-Metalic Tubulars Defectoscope NMTD")
+    st.subheader("Ultrasonic Simulation")
 
     config = st.session_state["config"]
     fs = config["sampling_rate"]
 
-    t_tx = np.array(config["tx_chirp_t"])
-    tx = np.array(config["tx_chirp_waveform"])
-    st.subheader("🔊 Transmitted Chirp")
-    fig0 = go.Figure()
-    fig0.add_trace(go.Scatter(x=t_tx*1e6, y=tx, name="Tx Chirp", line=dict(color='blue')))
-    fig0.update_layout(xaxis_title="Time (µs)", yaxis_title="Amplitude", height=200)
-    st.plotly_chart(fig0, use_container_width=True)
-
-    st.subheader("⚙️ Signal Processing Options")
+    # 1) Display chirp signal
     col1, col2 = st.columns(2)
     with col1:
-        align = st.checkbox("Align to Group Delay", value=True)
-    with col2:
-        filter_enabled = st.checkbox("Apply Bandpass Filter", value=True)
-        fmin = st.number_input("Low Cutoff (Hz)", value=500000)
-        fmax = st.number_input("High Cutoff (Hz)", value=5000000)
+        # Time‐domain plot
+        st.subheader("Transmitted Chirp Waveform")
+        fig, ax = plt.subplots(figsize=(6, 2))
+        ax.plot(t_chirp * 1e6, tx_chirp)
+        ax.set_xlabel("Time (µs)")
+        ax.set_ylabel("Amplitude")
+        ax.set_title(f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs")
+        ax.grid(True)
+        st.pyplot(fig)
 
+    with col2:
+        # Frequency‐domain plot
+        st.subheader("Chirp Frequency Spectrum")
+        TX_FFT = np.fft.fft(tx_chirp)
+        freqs = np.fft.fftfreq(len(tx_chirp), d=1/fs)
+        fig2, ax2 = plt.subplots(figsize=(6, 2))
+        mask = freqs >= 0
+        ax2.plot(freqs[mask] / 1e6, np.abs(TX_FFT[mask]))
+        ax2.set_xlabel("Frequency (MHz)")
+        ax2.set_ylabel("Magnitude")
+        ax2.set_title("Spectrum of Windowed Chirp")
+        ax2.grid(True)
+        st.pyplot(fig2)
+        
+    
+    # 2) Band-pass filter settings
+    st.sidebar.markdown("###Band-Pass Filter")
+    filter_enabled = st.sidebar.checkbox("Apply Bandpass filter", False)
+    fmin  = st.sidebar.number_input("Low cut (MHz)",  0.1, 10.0, 0.5, step=0.1) * 1e6
+    fmax = st.sidebar.number_input("High cut (MHz)", 0.1, 20.0, 5.0, step=0.1) * 1e6
+    order   = st.sidebar.slider("Filter order", 2, 8, 4)
+
+    # 3) Align toggle
+    align = st.sidebar.checkbox("Align to Group Delay", True)
+    
     t_rx, rx_raw, compressed_raw, freqs, df = simulate_multimode(config)
     gd_s = calculate_group_delay(tx, fs) if align else 0.0
     shift_samples = int(gd_s * fs)
