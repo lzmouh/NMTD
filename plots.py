@@ -4,7 +4,7 @@ import numpy as np
 from utils import simulate_multimode, calculate_group_delay, bandpass_filter
 
 def show_plots():
-    st.title("Non-metalic Tubualrs Defectoscope NMTD"
+    st.title("Non-metalic Tubualrs Defectoscope NMTD")
     st.subheader("Ultrasonic Simulation App")
 
     if "config" not in st.session_state:
