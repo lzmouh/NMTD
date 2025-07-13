@@ -158,33 +158,6 @@ def show_simulator():
     # Generate windowed chirp
     t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_s, f0, f1)
 
-    # Display chirp signal
-    col1, col2 = st.columns(2)
-    with col1:
-        # Time‐domain plot
-        st.subheader("Transmitted Chirp Waveform")
-        fig, ax = plt.subplots(figsize=(6, 2))
-        ax.plot(t_chirp * 1e6, tx_chirp)
-        ax.set_xlabel("Time (µs)")
-        ax.set_ylabel("Amplitude")
-        ax.set_title(f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs")
-        ax.grid(True)
-        st.pyplot(fig)
-
-    with col2:
-        # Frequency‐domain plot
-        st.subheader("Chirp Frequency Spectrum")
-        TX_FFT = np.fft.fft(tx_chirp)
-        freqs = np.fft.fftfreq(len(tx_chirp), d=1/fs)
-        fig2, ax2 = plt.subplots(figsize=(6, 2))
-        mask = freqs >= 0
-        ax2.plot(freqs[mask] / 1e6, np.abs(TX_FFT[mask]))
-        ax2.set_xlabel("Frequency (MHz)")
-        ax2.set_ylabel("Magnitude")
-        ax2.set_title("Spectrum of Windowed Chirp")
-        ax2.grid(True)
-        st.pyplot(fig2)
-
     # Save to config for downstream use
     config.update({
         "chirp_start_mhz":  f_start_mhz,
