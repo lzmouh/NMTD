@@ -8,38 +8,6 @@ from scipy.fft import fft, ifft, fftfreq
 from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 from scipy.signal import hilbert
 
-def align_by_group_delay(fs, tx_chirp, t_chirp, raw_signal, tt_fluid_us=None):
-    """
-    Aligns raw A-scan using group delay center of chirp.
-
-    Parameters:
-    - fs: sampling frequency (Hz)
-    - tx_chirp: transmitted chirp signal (1D array)
-    - t_chirp: time axis for chirp (1D array)
-    - raw_signal: measured raw A-scan signal (1D array)
-    - tt_fluid_us: optional travel time (for visual comparison)
-
-    Returns:
-    - t_aligned: time axis (µs), aligned so t=0 is group delay center
-    - raw_aligned: aligned signal
-    - gd_time: group delay time (s)
-    """
-    # 1. Compute group delay using Hilbert envelope peak
-    chirp_env = np.abs(hilbert(tx_chirp))
-    gd_index = np.argmax(chirp_env)
-    gd_time = t_chirp[gd_index]
-
-    # 2. Shift the signal so group delay becomes time zero
-    n_shift = gd_index
-    raw_aligned = np.zeros_like(raw_signal)
-    raw_aligned[:len(raw_signal) - n_shift] = raw_signal[n_shift:]
-
-    # 3. Adjust time axis accordingly
-    t_aligned = (np.arange(len(raw_signal)) - gd_index) / fs * 1e6  # µs
-
-    return t_aligned, raw_aligned, gd_time
-
-
 def simulate_multimode(config):
     """
     Simulate raw and pulse-compressed signal using multi-mode modeling.
@@ -174,16 +142,6 @@ def simulate_multimode(config):
     
     df = pd.DataFrame.from_records(records)
     return t_rx, rx, compressed, freqs, df
-    
-# --- Helper: group-delay alignment ---
-def align_by_group_delay(fs, tx, t_tx, rx):
-    env = np.abs(hilbert(tx))
-    gd_idx = int(np.argmax(env))
-    n = len(rx)
-    aligned = np.zeros_like(rx)
-    aligned[:n-gd_idx] = rx[gd_idx:]
-    t = (np.arange(n) - gd_idx) / fs * 1e6
-    return t, aligned
 
 # --- Helper: design & apply bandpass ---
 def bandpass_filter(data, fs, lowcut, highcut, order=4):
@@ -191,49 +149,35 @@ def bandpass_filter(data, fs, lowcut, highcut, order=4):
     b, a = butter(order, [lowcut/nyq, highcut/nyq], btype='band')
     return filtfilt(b, a, data)
 
-def show_plots():
-    st.title("📊 Ultrasonic A-Scan: Raw & Compressed with Alignment")
+def align_by_group_delay(fs, tx, t_tx, rx):
+    """Shift rx so that the chirp’s group delay center is at t=0."""
+    env = np.abs(hilbert(tx))
+    gd_idx = int(np.argmax(env))
+    n = len(rx)
+    aligned = np.zeros_like(rx)
+    aligned[: n - gd_idx] = rx[gd_idx:]
+    t = (np.arange(n) - gd_idx) / fs * 1e6
+    return t, aligned
 
-    # 1) Simulation
+
+def show_plots():
+    st.title("📊 Ultrasonic A-Scan Dashboard")
+
+    # 1) run the multimode simulation
     config = st.session_state["config"]
     fs = config["sampling_rate"]
     t_rx, raw_rx, comp_rx, freqs, df = simulate_multimode(config)
 
-    # 2) Band-pass filter settings
-    st.sidebar.markdown("###Band-Pass Filter")
-    apply_bp = st.sidebar.checkbox("Apply band-pass filter", False)
-    lowcut  = st.sidebar.number_input("Low cut (MHz)",  0.05, 10.0, 0.5, step=0.05) * 1e6
-    highcut = st.sidebar.number_input("High cut (MHz)", 0.05, 20.0, 5.0, step=0.05) * 1e6
-    order   = st.sidebar.slider("Filter order", 2, 8, 4)
+    # 2) compute aligned raw & compressed
+    tx    = np.array(config["tx_chirp_waveform"])
+    t_tx  = np.array(config["tx_chirp_t"])
+    t_al, raw_al = align_by_group_delay(fs, tx, t_tx, raw_rx)
+    _,    comp_al = align_by_group_delay(fs, tx, t_tx, comp_rx)
 
-    # 3) Align toggle
-    align = st.sidebar.checkbox("Align to chirp group delay", True)
-
-    # 4) Prepare signals
-    rx = raw_rx.copy()
-    # apply BP if requested
-    if apply_bp:
-        rx = bandpass_filter(rx, fs, lowcut, highcut, order)
-
-    # aligned raw
-    t_al, rx_al = (t_rx*1e6, rx)
-    # need tx and t_tx for alignment
-    t_tx = np.array(config["tx_chirp_t"])
-    tx   = np.array(config["tx_chirp_waveform"])
-    if align:
-        t_al, rx_al = align_by_group_delay(fs, tx, t_tx, rx)
-
-    # compress on (possibly filtered) raw
-    comp = fftconvolve(rx, tx[::-1], mode='same')
-    # align compressed
-    comp_al = comp.copy()
-    if align:
-        _, comp_al = align_by_group_delay(fs, tx, t_tx, comp)
-
-    # 5) Direct-mode echoes (mode 1)
+    # 3) extract direct‐mode (Mode 1) echo times
     df1 = df[df["Mode"] == 1]
     echo_times = df1["Time (µs)"].values
-    
+
     # 4) build 2×2 subplot figure
     fig = make_subplots(
         rows=2, cols=2,
@@ -304,3 +248,9 @@ def show_plots():
 
     # 6) display figure
     st.plotly_chart(fig, use_container_width=True)
+
+    # 7) show echo table
+    st.subheader("📋 Mode-1 Echo Times")
+    st.dataframe(df1[["Layer", "Time (µs)", "Amp"]].reset_index(drop=True))
+
+  
