@@ -161,87 +161,82 @@ def simulate_multimode(config):
     df = pd.DataFrame.from_records(records)
     return t_rx, rx, compressed, freqs, df
     
+# --- Helper: group-delay alignment ---
+def align_by_group_delay(fs, tx, t_tx, rx):
+    env = np.abs(hilbert(tx))
+    gd_idx = int(np.argmax(env))
+    n = len(rx)
+    aligned = np.zeros_like(rx)
+    aligned[:n-gd_idx] = rx[gd_idx:]
+    t = (np.arange(n) - gd_idx) / fs * 1e6
+    return t, aligned
+
+# --- Helper: design & apply bandpass ---
+def bandpass_filter(data, fs, lowcut, highcut, order=4):
+    nyq = 0.5 * fs
+    b, a = butter(order, [lowcut/nyq, highcut/nyq], btype='band')
+    return filtfilt(b, a, data)
+
 def show_plots():
-    st.title("Multimode Signal Simulation")
+    st.title("📊 Ultrasonic A-Scan: Raw & Compressed with Alignment")
+
+    # 1) Simulation
     config = st.session_state["config"]
     fs = config["sampling_rate"]
+    t_rx, raw_rx, comp_rx, freqs, df = simulate_multimode(config)
 
-    # Run simulation
-    t_rx, rx, compressed, freqs, df = simulate_multimode(config)
+    # 2) Band-pass filter settings
+    st.sidebar.markdown("### 🎛 Band-Pass Filter")
+    apply_bp = st.sidebar.checkbox("Apply band-pass filter", False)
+    lowcut  = st.sidebar.number_input("Low cut (MHz)",  0.1, 10.0, 0.5, step=0.1) * 1e6
+    highcut = st.sidebar.number_input("High cut (MHz)", 0.1, 20.0, 5.0, step=0.1) * 1e6
+    order   = st.sidebar.slider("Filter order", 2, 8, 4)
 
-    # Align to group delay toggle
-    align = st.toggle("🔄 Align Raw Signal to Chirp Group Delay", value=True)
+    # 3) Align toggle
+    align = st.sidebar.checkbox("Align to chirp group delay", True)
 
+    # 4) Prepare signals
+    rx = raw_rx.copy()
+    # apply BP if requested
+    if apply_bp:
+        rx = bandpass_filter(rx, fs, lowcut, highcut, order)
+
+    # aligned raw
+    t_al, rx_al = (t_rx*1e6, rx)
+    # need tx and t_tx for alignment
+    t_tx = np.array(config["tx_chirp_t"])
+    tx   = np.array(config["tx_chirp_waveform"])
     if align:
-        t_chirp = np.array(config["tx_chirp_t"])
-        tx = np.array(config["tx_chirp_waveform"])
-        t_aligned, raw_aligned, gd_s = align_by_group_delay(fs, tx, t_chirp, rx)
-        st.success(f"Signal aligned to chirp group delay at **{gd_s*1e6:.2f} µs**")
-    else:
-        t_aligned = t_rx * 1e6
-        raw_aligned = rx
+        t_al, rx_al = align_by_group_delay(fs, tx, t_tx, rx)
 
-    # Extract Mode 1 echoes (direct reflections)
-    df_mode1 = df[df["Mode"] == 1]
+    # compress on (possibly filtered) raw
+    comp = fftconvolve(rx, tx[::-1], mode='same')
+    # align compressed
+    comp_al = comp.copy()
+    if align:
+        _, comp_al = align_by_group_delay(fs, tx, t_tx, comp)
 
-    # Get fluid gap echo (optional)
-    fluid_row = df[df["Layer"].str.contains("Fluid", case=False)].iloc[0] if "Fluid" in df["Layer"].values else None
-    tt_fluid = fluid_row["Time (µs)"] if fluid_row is not None else None
+    # 5) Direct-mode echoes (mode 1)
+    df1 = df[df["Mode"] == 1]
 
-    # --- Raw A-scan ---
-    st.subheader("🟢 Raw Signal (Aligned if selected)")
+    # 6) Layout: 2x2 plots
+    # Row 1: Raw vs Aligned Raw
     fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(x=t_aligned, y=raw_aligned, name="Raw", line=dict(color="teal")))
+    fig1.add_trace(go.Scatter(x=t_rx*1e6, y=raw_rx,  name="Raw Rx",    line=dict(color="gray")))
+    fig1.add_trace(go.Scatter(x=t_al,       y=rx_al,    name="Aligned Rx",line=dict(color="teal")))
+    for _,row in df1.iterrows():
+        fig1.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="black")
+    fig1.update_layout(title="Raw A-Scan", xaxis_title="Time (µs)", yaxis_title="Amplitude")
 
-    # Annotate echoes (only direct)
-    for _, row in df_mode1.iterrows():
-        fig1.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
-                       annotation_text=row["Layer"], annotation_position="top right")
-
-    # Fluid gap echo annotation
-    if tt_fluid:
-        fig1.add_vline(x=tt_fluid, line_dash="dash", line_color="blue",
-                       annotation_text="Fluid Gap", annotation_position="top left")
-
-    fig1.update_layout(
-        xaxis_title="Time (µs)", yaxis_title="Amplitude",
-        hovermode="x unified", height=400
-    )
-    st.plotly_chart(fig1, use_container_width=True)
-
-    # --- Pulse Compressed ---
-    st.subheader("🔴 Pulse-Compressed A-Scan")
+    # Row 2: Compressed vs Aligned Compressed
     fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(x=t_aligned, y=compressed, name="Compressed", line=dict(color="firebrick")))
+    fig2.add_trace(go.Scatter(x=t_rx*1e6, y=comp,    name="Compressed",    line=dict(color="gray")))
+    fig2.add_trace(go.Scatter(x=t_al,       y=comp_al, name="Aligned Compressed", line=dict(color="firebrick")))
+    for _,row in df1.iterrows():
+        fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="black")
+    fig2.update_layout(title="Pulse-Compressed A-Scan",
+                       xaxis_title="Time (µs)", yaxis_title="Amplitude")
 
-    for _, row in df_mode1.iterrows():
-        fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
-                       annotation_text=row["Layer"], annotation_position="top right")
-
-    if tt_fluid:
-        fig2.add_vline(x=tt_fluid, line_dash="dash", line_color="blue",
-                       annotation_text="Fluid Gap", annotation_position="top left")
-
-    fig2.update_layout(
-        xaxis_title="Time (µs)", yaxis_title="Amplitude",
-        hovermode="x unified", height=400
-    )
+    # Display plots
+    st.plotly_chart(fig1, use_container_width=True)
     st.plotly_chart(fig2, use_container_width=True)
-
-    # --- Frequency Spectrum ---
-    st.subheader("🔵 Frequency Spectrum")
-    fft_vals = np.abs(fft(raw_aligned))
-    freq_axis = np.fft.fftfreq(len(raw_aligned), d=1/fs) / 1e6
-    fig3 = go.Figure()
-    fig3.add_trace(go.Scatter(x=freq_axis[:len(freq_axis)//2],
-                              y=fft_vals[:len(freq_axis)//2],
-                              name="FFT", line=dict(color="royalblue")))
-    fig3.update_layout(
-        xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
-        hovermode="x unified", height=300
-    )
-    st.plotly_chart(fig3, use_container_width=True)
-
-    # --- Echo Table ---
-    st.subheader("📋 Mode-1 Echo Parameters")
-    st.dataframe(df_mode1.reset_index(drop=True))
