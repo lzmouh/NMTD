@@ -5,6 +5,39 @@ import plotly.graph_objects as go
 from scipy.signal import fftconvolve
 from scipy.fft import fft, ifft, fftfreq
 from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
+from scipy.signal import hilbert
+
+def align_by_group_delay(fs, tx_chirp, t_chirp, raw_signal, tt_fluid_us=None):
+    """
+    Aligns raw A-scan using group delay center of chirp.
+
+    Parameters:
+    - fs: sampling frequency (Hz)
+    - tx_chirp: transmitted chirp signal (1D array)
+    - t_chirp: time axis for chirp (1D array)
+    - raw_signal: measured raw A-scan signal (1D array)
+    - tt_fluid_us: optional travel time (for visual comparison)
+
+    Returns:
+    - t_aligned: time axis (µs), aligned so t=0 is group delay center
+    - raw_aligned: aligned signal
+    - gd_time: group delay time (s)
+    """
+    # 1. Compute group delay using Hilbert envelope peak
+    chirp_env = np.abs(hilbert(tx_chirp))
+    gd_index = np.argmax(chirp_env)
+    gd_time = t_chirp[gd_index]
+
+    # 2. Shift the signal so group delay becomes time zero
+    n_shift = gd_index
+    raw_aligned = np.zeros_like(raw_signal)
+    raw_aligned[:len(raw_signal) - n_shift] = raw_signal[n_shift:]
+
+    # 3. Adjust time axis accordingly
+    t_aligned = (np.arange(len(raw_signal)) - gd_index) / fs * 1e6  # µs
+
+    return t_aligned, raw_aligned, gd_time
+
 
 def simulate_multimode(config):
     """
@@ -130,60 +163,90 @@ def simulate_multimode(config):
     
 def show_plots():
     st.title("Multimode Signal Simulation")
-
-    # Run sim
     config = st.session_state["config"]
+    fs = config["sampling_rate"]
+
+    # Run simulation
     t_rx, rx, compressed, freqs, df = simulate_multimode(config)
 
-    # Table of parameters
-    
-    # select only Mode 1 rows
-    df_mode1 = df[df["Mode"] == 1]
-    st.subheader("Direct Mode Echo Parameters")
-    st.dataframe(df_mode1, use_container_width=True)
+    # Align to group delay toggle
+    align = st.toggle("🔄 Align Raw Signal to Chirp Group Delay", value=True)
 
-    # Raw Signal
-    st.subheader("Raw Received Signal")
+    if align:
+        t_chirp = np.array(config["tx_chirp_t"])
+        tx = np.array(config["tx_chirp_waveform"])
+        t_aligned, raw_aligned, gd_s = align_by_group_delay(fs, tx, t_chirp, rx)
+        st.success(f"Signal aligned to chirp group delay at **{gd_s*1e6:.2f} µs**")
+    else:
+        t_aligned = t_rx * 1e6
+        raw_aligned = rx
+
+    # Extract Mode 1 echoes (direct reflections)
+    df_mode1 = df[df["Mode"] == 1]
+
+    # Get fluid gap echo (optional)
+    fluid_row = df[df["Layer"].str.contains("Fluid", case=False)].iloc[0] if "Fluid" in df["Layer"].values else None
+    tt_fluid = fluid_row["Time (µs)"] if fluid_row is not None else None
+
+    # --- Raw A-scan ---
+    st.subheader("🟢 Raw Signal (Aligned if selected)")
     fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(x=t_rx*1e6, y=rx, line=dict(color="green"), name="Raw"))
-    
-    # --- add the vertical line & annotation for the fluid gap ---
-    gap_m    = DEFAULT_GAP_INCH * INCH_TO_METER
-    tt_fluid_us = 2 * gap_m / config["fluid_velocity"] * 1e6
+    fig1.add_trace(go.Scatter(x=t_aligned, y=raw_aligned, name="Raw", line=dict(color="teal")))
 
-    df_mode1 = df[df["Mode"] == 1]
+    # Annotate echoes (only direct)
     for _, row in df_mode1.iterrows():
         fig1.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
                        annotation_text=row["Layer"], annotation_position="top right")
-    fig1.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
-                       hovermode="x unified", height=600)
+
+    # Fluid gap echo annotation
+    if tt_fluid:
+        fig1.add_vline(x=tt_fluid, line_dash="dash", line_color="blue",
+                       annotation_text="Fluid Gap", annotation_position="top left")
+
+    fig1.update_layout(
+        xaxis_title="Time (µs)", yaxis_title="Amplitude",
+        hovermode="x unified", height=400
+    )
     st.plotly_chart(fig1, use_container_width=True)
 
-    # Compressed Signal
-    st.subheader("Pulse-Compressed Signal")
+    # --- Pulse Compressed ---
+    st.subheader("🔴 Pulse-Compressed A-Scan")
     fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(x=t_rx*1e6, y=compressed, line=dict(color="firebrick"), name="Compressed"))
+    fig2.add_trace(go.Scatter(x=t_aligned, y=compressed, name="Compressed", line=dict(color="firebrick")))
+
     for _, row in df_mode1.iterrows():
         fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="gray",
                        annotation_text=row["Layer"], annotation_position="top right")
-    fig2.update_layout(xaxis_title="Time (µs)", yaxis_title="Amp",
-                       hovermode="x unified", height=600)
+
+    if tt_fluid:
+        fig2.add_vline(x=tt_fluid, line_dash="dash", line_color="blue",
+                       annotation_text="Fluid Gap", annotation_position="top left")
+
+    fig2.update_layout(
+        xaxis_title="Time (µs)", yaxis_title="Amplitude",
+        hovermode="x unified", height=400
+    )
     st.plotly_chart(fig2, use_container_width=True)
 
-    # 3) Frequency-domain of compressed signal
-    st.subheader("Frequency Spectrum (Compressed Signal)")
-    fft_vals = np.abs(np.fft.fft(compressed))
-    freqs   = np.fft.fftfreq(len(compressed), d=1/config["sampling_rate"])
-    mask    = freqs >= 0
-
+    # --- Frequency Spectrum ---
+    st.subheader("🔵 Frequency Spectrum")
+    fft_vals = np.abs(fft(raw_aligned))
+    freq_axis = np.fft.fftfreq(len(raw_aligned), d=1/fs) / 1e6
     fig3 = go.Figure()
-    fig3.add_trace(go.Scatter(
-        x=freqs[mask]/1e6, y=fft_vals[mask],
-        mode='lines', line=dict(color='royalblue'),
-        name='FFT'
-    ))
+    fig3.add_trace(go.Scatter(x=freq_axis[:len(freq_axis)//2],
+                              y=fft_vals[:len(freq_axis)//2],
+                              name="FFT", line=dict(color="royalblue")))
     fig3.update_layout(
         xaxis_title="Frequency (MHz)", yaxis_title="Magnitude",
-        height=600, hovermode="x unified"
+        hovermode="x unified", height=300
     )
     st.plotly_chart(fig3, use_container_width=True)
+
+    # --- Echo Table ---
+    st.subheader("📋 Mode-1 Echo Parameters")
+    st.dataframe(df_mode1.reset_index(drop=True))
+
+    # --- Export ---
+    st.subheader("📤 Export Echo Table")
+    csv = df_mode1.to_csv(index=False).encode()
+    st.download_button("Download CSV", csv, "echo_parameters.csv", "text/csv
