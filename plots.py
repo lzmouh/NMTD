@@ -53,13 +53,6 @@ def show_plots():
         fig.update_layout(height=500, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
-        st.subheader("Compressed (Unaligned)")
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=t_rx * 1e6, y=compressed_raw))
-        fig.update_layout(height=500, xaxis_title="Time (µs)")
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
         st.subheader("Aligned Raw Signal")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=t_rx * 1e6, y=rx))
@@ -69,6 +62,14 @@ def show_plots():
         fig.update_layout(height=500, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
+
+    with col2:
+        st.subheader("Compressed Signal")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=t_rx * 1e6, y=compressed_raw))
+        fig.update_layout(height=500, xaxis_title="Time (µs)")
+        st.plotly_chart(fig, use_container_width=True)
+        
         st.subheader("Aligned Compressed Signal")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=t_rx * 1e6, y=compressed))
@@ -78,5 +79,5 @@ def show_plots():
         fig.update_layout(height=500, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("📊 Mode-1 Direct Echo Table")
+    st.subheader("Direct Mode Echos")
     st.dataframe(df_mode1)
