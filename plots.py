@@ -186,10 +186,10 @@ def show_plots():
     t_rx, raw_rx, comp_rx, freqs, df = simulate_multimode(config)
 
     # 2) Band-pass filter settings
-    st.sidebar.markdown("### 🎛 Band-Pass Filter")
+    st.sidebar.markdown("###Band-Pass Filter")
     apply_bp = st.sidebar.checkbox("Apply band-pass filter", False)
-    lowcut  = st.sidebar.number_input("Low cut (MHz)",  0.1, 10.0, 0.5, step=0.1) * 1e6
-    highcut = st.sidebar.number_input("High cut (MHz)", 0.1, 20.0, 5.0, step=0.1) * 1e6
+    lowcut  = st.sidebar.number_input("Low cut (MHz)",  0.05, 10.0, 0.5, step=0.05) * 1e6
+    highcut = st.sidebar.number_input("High cut (MHz)", 0.05, 20.0, 5.0, step=0.05) * 1e6
     order   = st.sidebar.slider("Filter order", 2, 8, 4)
 
     # 3) Align toggle
@@ -219,24 +219,74 @@ def show_plots():
     # 5) Direct-mode echoes (mode 1)
     df1 = df[df["Mode"] == 1]
 
-    # 6) Layout: 2x2 plots
-    # Row 1: Raw vs Aligned Raw
-    fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(x=t_rx*1e6, y=raw_rx,  name="Raw Rx",    line=dict(color="gray")))
-    fig1.add_trace(go.Scatter(x=t_al,       y=rx_al,    name="Aligned Rx",line=dict(color="teal")))
-    for _,row in df1.iterrows():
-        fig1.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="black")
-    fig1.update_layout(title="Raw A-Scan", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+    
+    # 4) build 2×2 subplot figure
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=[
+            "Raw A-Scan",
+            "Aligned A-Scan",
+            "Pulse-Compressed A-Scan",
+            "Receiver Signal Spectrum"
+        ]
+    )
 
-    # Row 2: Compressed vs Aligned Compressed
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(x=t_rx*1e6, y=comp,    name="Compressed",    line=dict(color="gray")))
-    fig2.add_trace(go.Scatter(x=t_al,       y=comp_al, name="Aligned Compressed", line=dict(color="firebrick")))
-    for _,row in df1.iterrows():
-        fig2.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="black")
-    fig2.update_layout(title="Pulse-Compressed A-Scan",
-                       xaxis_title="Time (µs)", yaxis_title="Amplitude")
+    # Row 1, Col 1: Raw A-Scan
+    fig.add_trace(
+        go.Scatter(x=t_rx * 1e6, y=raw_rx, name="Raw", line=dict(color="black")),
+        row=1, col=1
+    )
+    for t in echo_times:
+        fig.add_vline(x=t, line_dash="dot", line_color="gray", row=1, col=1)
+    fig.update_xaxes(title_text="Time (µs)", row=1, col=1)
+    fig.update_yaxes(title_text="Amplitude", row=1, col=1)
 
-    # Display plots
-    st.plotly_chart(fig1, use_container_width=True)
-    st.plotly_chart(fig2, use_container_width=True)
+    # Row 1, Col 2: Aligned A-Scan
+    fig.add_trace(
+        go.Scatter(x=t_al, y=raw_al, name="Aligned", line=dict(color="teal")),
+        row=1, col=2
+    )
+    for t in echo_times:
+        fig.add_vline(x=t, line_dash="dot", line_color="gray", row=1, col=2)
+    fig.update_xaxes(title_text="Time (µs)", row=1, col=2)
+    fig.update_yaxes(title_text="Amplitude", row=1, col=2)
+
+    # Row 2, Col 1: Pulse-Compressed A-Scan
+    fig.add_trace(
+        go.Scatter(x=t_rx * 1e6, y=comp_rx, name="Compressed", line=dict(color="firebrick")),
+        row=2, col=1
+    )
+    fig.add_trace(
+        go.Scatter(x=t_al, y=comp_al, name="Aligned Compressed", line=dict(color="orange", dash="dash")),
+        row=2, col=1
+    )
+    for t in echo_times:
+        fig.add_vline(x=t, line_dash="dot", line_color="gray", row=2, col=1)
+    fig.update_xaxes(title_text="Time (µs)", row=2, col=1)
+    fig.update_yaxes(title_text="Amplitude", row=2, col=1)
+
+    # Row 2, Col 2: Receiver Signal Spectrum
+    fft_vals = np.abs(fft(raw_rx))
+    freq_axis = fftfreq(len(raw_rx), d=1/fs) / 1e6
+    half = len(freq_axis)//2
+    fig.add_trace(
+        go.Scatter(
+            x=freq_axis[:half],
+            y=fft_vals[:half],
+            name="Spectrum",
+            line=dict(color="royalblue")
+        ),
+        row=2, col=2
+    )
+    fig.update_xaxes(title_text="Frequency (MHz)", row=2, col=2)
+    fig.update_yaxes(title_text="Magnitude", row=2, col=2)
+
+    # 5) common layout updates
+    fig.update_layout(
+        height=800,
+        showlegend=False,
+        title_text="Ultrasonic A-Scan: Raw, Aligned, Compressed, & Spectrum"
+    )
+
+    # 6) display figure
+    st.plotly_chart(fig, use_container_width=True)
