@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from scipy.signal import fftconvolve, hilbert, butter, filtfilt
 from scipy.fft import fft, ifft, fftfreq
