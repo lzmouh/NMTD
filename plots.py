@@ -126,28 +126,20 @@ def show_plots():
     with col1:
         # Time‐domain plot
         st.subheader("Transmitted Chirp Waveform")
-        fig, ax = plt.subplots(figsize=(6, 2))
-        ax.plot(t_chirp * 1e6, tx_chirp)
-        ax.set_xlabel("Time (µs)")
-        ax.set_ylabel("Amplitude")
-        ax.set_title(f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs")
-        ax.grid(True)
-        st.pyplot(fig)
-
+        figtx = go.Figure()
+        figtx.add_trace(go.Scatter(x=t_chirp*1e6, y=tx_chirp, name="Tx chirp", line=dict(color='black')))
+        figtx.update_layout(title="f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs"", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=500)
+        
     with col2:
         # Frequency‐domain plot
         st.subheader("Chirp Frequency Spectrum")
         TX_FFT = np.fft.fft(tx_chirp)
         freqs = np.fft.fftfreq(len(tx_chirp), d=1/fs)
-        fig2, ax2 = plt.subplots(figsize=(6, 2))
         mask = freqs >= 0
-        ax2.plot(freqs[mask] / 1e6, np.abs(TX_FFT[mask]))
-        ax2.set_xlabel("Frequency (MHz)")
-        ax2.set_ylabel("Magnitude")
-        ax2.set_title("Spectrum of Windowed Chirp")
-        ax2.grid(True)
-        st.pyplot(fig2)
-        
+        figtxf = go.Figure()
+        figtxf.add_trace(go.Scatter(x=freqs[mask] / 1e6, y=np.abs(TX_FFT[mask]), name="Tx chirp", line=dict(color='black')))
+        figtxf.update_layout(title="Tx Chirp Frequency Spectrum", xaxis_title="Frequency (MHz)", yaxis_title="Magnitude", height=500)
+
     
     # 2) Band-pass filter settings
     st.sidebar.markdown("###Band-Pass Filter")
