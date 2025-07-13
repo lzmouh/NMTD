@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from scipy.signal import fftconvolve
+from scipy.signal import fftconvolve, hilbert, butter, filtfilt
 from scipy.fft import fft, ifft, fftfreq
 from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 from scipy.signal import hilbert
