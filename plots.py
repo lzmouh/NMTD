@@ -219,7 +219,7 @@ def show_plots():
 
     # 5) Direct-mode echoes (mode 1)
     df1 = df[df["Mode"] == 1]
-
+    echo_times = df1["Time (µs)"].values
     
     # 4) build 2×2 subplot figure
     fig = make_subplots(
