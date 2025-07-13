@@ -128,7 +128,7 @@ def show_plots():
         st.subheader("Transmitted Chirp Waveform")
         figtx = go.Figure()
         figtx.add_trace(go.Scatter(x=t_chirp*1e6, y=tx_chirp, name="Tx chirp", line=dict(color='black')))
-        figtx.update_layout(title="f"{f_start_mhz:.1f}→{f_end_mhz:.1f} MHz over {sweep_us:.0f} µs"", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=500)
+        figtx.update_layout(title="Transmitter Chirp Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=500)
         
     with col2:
         # Frequency‐domain plot
