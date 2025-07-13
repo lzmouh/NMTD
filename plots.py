@@ -245,8 +245,3 @@ def show_plots():
     # --- Echo Table ---
     st.subheader("📋 Mode-1 Echo Parameters")
     st.dataframe(df_mode1.reset_index(drop=True))
-
-    # --- Export ---
-    st.subheader("📤 Export Echo Table")
-    csv = df_mode1.to_csv(index=False).encode()
-    st.download_button("Download CSV", csv, "echo_parameters.csv", "text/csv
