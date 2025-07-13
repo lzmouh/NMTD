@@ -1,7 +1,8 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-from scipy.signal import chirp, fftconvolve, butter, sosfilt, tukey
+from scipy.signal import chirp, fftconvolve, butter, sosfilt
+from scipy.signal.windows import tukey
 from scipy.fft import fft, fftfreq
 import plotly.graph_objects as go
 from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
