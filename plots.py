@@ -158,7 +158,17 @@ def simulate_multimode(config):
     # --- Matched filtering (pulse compression) ---
     compressed = fftconvolve(rx, tx[::-1], mode='same')
     compressed = np.roll(compressed, -len(tx)//2)  # align peak with true echo time
+    
+    # 2) compute aligned raw & compressed
+    tx    = np.array(config["tx_chirp_waveform"])
+    t_tx  = np.array(config["tx_chirp_t"])
+    t_al, raw_al = align_by_group_delay(fs, tx, t_tx, raw_rx)
+    _,    comp_al = align_by_group_delay(fs, tx, t_tx, comp_rx)
 
+    # 3) extract direct‐mode (Mode 1) echo times
+    df1 = df[df["Mode"] == 1]
+    echo_times = df1["Time (µs)"].values
+    
     df = pd.DataFrame.from_records(records)
     return t_rx, rx, compressed, freqs, df
     
