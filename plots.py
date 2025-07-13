@@ -50,7 +50,7 @@ def show_plots():
         st.subheader("Raw Signal")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=t_rx * 1e6, y=rx_raw))
-        fig.update_layout(height=500, xaxis_title="Time (µs)")
+        fig.update_layout(height=350, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Aligned Raw Signal")
@@ -59,7 +59,7 @@ def show_plots():
         for _, row in df_mode1.iterrows():
             fig.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="red",
                           annotation_text=row["Layer"], annotation_position="top right")
-        fig.update_layout(height=500, xaxis_title="Time (µs)")
+        fig.update_layout(height=350, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -67,7 +67,7 @@ def show_plots():
         st.subheader("Compressed Signal")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=t_rx * 1e6, y=compressed_raw))
-        fig.update_layout(height=500, xaxis_title="Time (µs)")
+        fig.update_layout(height=350, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
         
         st.subheader("Aligned Compressed Signal")
@@ -76,7 +76,7 @@ def show_plots():
         for _, row in df_mode1.iterrows():
             fig.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="blue",
                           annotation_text=row["Layer"], annotation_position="top right")
-        fig.update_layout(height=500, xaxis_title="Time (µs)")
+        fig.update_layout(height=350, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Direct Mode Echos")
