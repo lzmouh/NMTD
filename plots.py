@@ -121,6 +121,9 @@ def show_plots():
     config = st.session_state["config"]
     fs = config["sampling_rate"]
 
+    t_tx = np.array(config["tx_chirp_t"])
+    tx = np.array(config["tx_chirp_waveform"])
+ 
     # 1) Display chirp signal
     col1, col2 = st.columns(2)
     with col1:
