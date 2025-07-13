@@ -118,6 +118,10 @@ def show_plots():
     st.title("Non-Metalic Tubulars Defectoscope NMTD")
     st.subheader("Ultrasonic Simulation")
 
+    if "config" not in st.session_state:
+        st.warning("⚠️ Configuration not found. Please visit the **Simulator** page first to define the layer structure and settings.")
+        st.stop()
+    
     config = st.session_state["config"]
     fs = config["sampling_rate"]
 
