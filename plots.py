@@ -155,6 +155,9 @@ def simulate_multimode(config):
                     "Amp":            round(amp, 3)
                 })
 
+    fs = config["sampling_rate"]
+    t_rx, raw_rx, comp_rx, freqs, df = simulate_multimode(config)
+    
     # --- Matched filtering (pulse compression) ---
     compressed = fftconvolve(rx, tx[::-1], mode='same')
     compressed = np.roll(compressed, -len(tx)//2)  # align peak with true echo time
