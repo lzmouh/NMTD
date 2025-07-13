@@ -4,7 +4,8 @@ import numpy as np
 from utils import simulate_multimode, calculate_group_delay, bandpass_filter
 
 def show_plots():
-    st.title("📡 Ultrasonic Simulation Dashboard")
+    st.title("Non-metalic Tubualrs Defectoscope NMTD"
+    st.subheader("Ultrasonic Simulation App")
 
     if "config" not in st.session_state:
         st.warning("⚠️ Configuration not found. Please visit the **Simulator** page first.")
@@ -16,14 +17,14 @@ def show_plots():
     tx = np.array(config["tx_chirp_waveform"])
 
     # Chirp plots
-    with st.expander("🔊 Transmitted Chirp"):
+    with st.expander("Transmitted Chirp"):
         fig_tx = go.Figure()
         fig_tx.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx))
         fig_tx.update_layout(title="Tx Chirp (Time Domain)", xaxis_title="Time (µs)", height=300)
         st.plotly_chart(fig_tx, use_container_width=True)
 
     # Settings
-    st.sidebar.header("🔧 Signal Options")
+    st.sidebar.header("Signal Processing Options")
     align = st.sidebar.checkbox("Align to Group Delay", True)
     apply_filter = st.sidebar.checkbox("Apply Bandpass Filter", False)
     fmin = st.sidebar.number_input("Min Freq (MHz)", 0.1, 20.0, 0.5) * 1e6
@@ -49,13 +50,13 @@ def show_plots():
         st.subheader("Raw Signal")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=t_rx * 1e6, y=rx_raw))
-        fig.update_layout(height=250, xaxis_title="Time (µs)")
+        fig.update_layout(height=500, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Compressed (Unaligned)")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=t_rx * 1e6, y=compressed_raw))
-        fig.update_layout(height=250, xaxis_title="Time (µs)")
+        fig.update_layout(height=500, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -65,7 +66,7 @@ def show_plots():
         for _, row in df_mode1.iterrows():
             fig.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="red",
                           annotation_text=row["Layer"], annotation_position="top right")
-        fig.update_layout(height=250, xaxis_title="Time (µs)")
+        fig.update_layout(height=500, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
         st.subheader("Aligned Compressed Signal")
@@ -74,7 +75,7 @@ def show_plots():
         for _, row in df_mode1.iterrows():
             fig.add_vline(x=row["Time (µs)"], line_dash="dot", line_color="blue",
                           annotation_text=row["Layer"], annotation_position="top right")
-        fig.update_layout(height=250, xaxis_title="Time (µs)")
+        fig.update_layout(height=500, xaxis_title="Time (µs)")
         st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("📊 Mode-1 Direct Echo Table")
