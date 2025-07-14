@@ -48,7 +48,7 @@ def show_simulator():
         config["total_thickness"] = pipe["total_thickness"]
         
         # Display layers table
-        st.markdown("### 📋 Pipe Layers")
+        st.markdown("###Pipe Layers")
         for i, layer in enumerate(config["layer_data"]):
             st.markdown(
                 f"**Layer {i+1}: {layer['name']}**  \n"
@@ -66,7 +66,7 @@ def show_simulator():
         while len(config["layer_data"]) < config["num_layers"]:
             config["layer_data"].append({})
 
-        st.markdown("### ✏️ Configure Custom Layers")
+        st.markdown("###Configure Custom Layers")
         for i in range(config["num_layers"]):
             st.markdown(f"#### Layer {i+1}")
             layer_type = st.selectbox(f"Layer Type", ["Select from DB", "Custom"], key=f"layer_type_{i}")
@@ -97,17 +97,26 @@ def show_simulator():
 
     # --- Total Thickness ---
     config["total_thickness"] = sum(l["thickness"] for l in config["layer_data"])
-    st.markdown(f"**📏 Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
+    st.markdown(f"**Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
 
     # --- Defect Settings ---
-    st.markdown("### ⚠️ Defect Settings")
+    st.markdown("###Defect Settings")
     if config["num_layers"] == 1:
-        config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
+        # Force defect type to Crack or None
+        config["defect_type"] = st.selectbox(
+            "Defect Type", ["None", "Crack"], index=["None", "Crack"].index(config["defect_type"])
+        )
+        # Disable defect layer index; only one layer
+        st.markdown("Defect Layer Index: **1** (only one layer)")
+        config["defect_layer"] = 1
     else:
-        config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
-
-    config["defect_layer"] = st.slider("Defect Layer", 1, config["num_layers"], config.get("defect_layer", 1))
-
+        config["defect_type"] = st.selectbox(
+            "Defect Type", ["None", "Delamination", "Crack"],
+            index=["None", "Delamination", "Crack"].index(config["defect_type"])
+        )
+        config["defect_layer"] = st.slider(
+            "Defect Layer Index", min_value=1, max_value=config["num_layers"], value=config["defect_layer"]
+        )
  
     # --- Chirp Settings ---
     st.subheader("🔊 Chirp Settings")
