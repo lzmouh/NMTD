@@ -1,20 +1,6 @@
 import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
 import json
 from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT_GAP_INCH, MATERIAL_DB, DEFAULT_CONFIG
-from scipy.signal import chirp
-from scipy.signal.windows import tukey
-
-def generate_tx_chirp(fs, sweep_s, f_start, f_end):
-    n = int(fs * sweep_s)
-    t = np.linspace(0, sweep_s, n, endpoint=False)
-    # Linear FM chirp
-    tx = chirp(t, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
-    # Apply Tukey window (alpha=0.1) to ramp in/out
-    win = tukey(n, alpha=0.1)
-    tx *= win
-    return t, tx
 
 def show_simulator():
     st.title("NMTD Ultrasonic Response Simulator")
@@ -148,24 +134,13 @@ def show_simulator():
     with col3:
         sweep_us    = st.number_input("Sweep Duration (µs)",    min_value=1.0, max_value=200.0,
                                       value=50.0, step=1.0, key="sweep_us")
-
-    # Convert units
-    fs = 100e6  # 100 MHz sampling
-    f0 = f_start_mhz * 1e6
-    f1 = f_end_mhz   * 1e6
-    sweep_s = sweep_us * 1e-6
-
-    # Generate windowed chirp
-    t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_s, f0, f1)
-
+        
     # Save to config for downstream use
     config.update({
-        "chirp_start_mhz":  f_start_mhz,
-        "chirp_end_mhz":    f_end_mhz,
-        "chirp_sweep_us":   sweep_us,
+        "f_start_mhz":  f_start_mhz,
+        "f_end_mhz":    f_end_mhz,
+        "sweep_us":   sweep_us,
         "sampling_rate":    fs,
-        "tx_chirp_t":       t_chirp.tolist(),
-        "tx_chirp_waveform":tx_chirp.tolist()
     })
     st.session_state["config"] = config
     
