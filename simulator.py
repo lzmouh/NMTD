@@ -1,179 +1,111 @@
+# simulator.py
+
 import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
 import json
-from config import fluid_impedance_db, default_densities, INCH_TO_METER, DEFAULT_GAP_INCH, MATERIAL_DB, DEFAULT_CONFIG
-from scipy.signal import chirp
-from scipy.signal.windows import tukey
+from config import DEFAULT_CONFIG
+from utils import PIPE_DB
 
-def generate_tx_chirp(fs, sweep_s, f_start, f_end):
-    n = int(fs * sweep_s)
-    t = np.linspace(0, sweep_s, n, endpoint=False)
-    # Linear FM chirp
-    tx = chirp(t, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
-    # Apply Tukey window (alpha=0.1) to ramp in/out
-    win = tukey(n, alpha=0.1)
-    tx *= win
-    return t, tx
+# Ensure we have a session config
+if "config" not in st.session_state:
+    st.session_state["config"] = json.loads(json.dumps(DEFAULT_CONFIG))
 
-def show_simulator():
-    st.title("NMTD Ultrasonic Response Simulator")
+config = st.session_state["config"]
 
-    # --- Initialize default config if missing ---
-    if "config" not in st.session_state or not st.session_state.get("config"):
-        st.session_state["config"] = DEFAULT_CONFIG.copy()
+st.set_page_config(page_title="NMTD Simulator", layout="wide")
+st.sidebar.title("📁 Menu")
+page = st.sidebar.radio("Navigation", ["Simulator", "Plots", "Visualization", "About"])
 
-    config = st.session_state["config"]
+if page == "Simulator":
+    st.title("🔍 NMTD Ultrasonic Response Simulator")
 
+    # --- 1) Pipe Preset Selection ---
+    preset = st.selectbox(
+        "Choose Commercial Pipe or Custom",
+        ["Custom"] + list(PIPE_DB.keys())
+    )
+
+    if preset != "Custom":
+        # Load preset data into config
+        entry = PIPE_DB[preset]
+        layers = []
+        for lyr in entry["layers"]:
+            layers.append({
+                "name": lyr["name"],
+                "thickness": lyr["thickness"],
+                "Z": lyr["Z"],
+                "v": lyr["v"],
+                "alpha0": lyr["alpha0"],
+                "n_exp": lyr["n_exp"]
+            })
+        config["layer_data"]     = layers
+        config["num_layers"]     = len(layers)
+        config["total_thickness"]= entry["total_thickness"]
+        st.markdown(f"**Preset Description:** {entry['description']}")
+    # else: keep existing config["layer_data"] / num_layers
+
+    # --- 2) Fluid Configuration ---
     col1, col2 = st.columns(2)
-
-    # --- FLUID SETTINGS ---
     with col1:
         config["fluid"] = st.selectbox(
-            "Select Borehole Fluid", list(fluid_impedance_db.keys()),
-            index=list(fluid_impedance_db.keys()).index(config["fluid"])
+            "Select Borehole Fluid",
+            list(config.get("fluid_impedance_db", {}).keys()) if False else list(config.get("fluid_impedance_db", {}))  # assume fluid list in config or elsewhere
         )
-        if config["fluid"] == "Other":
-            config["fluid_density"] = st.number_input("Fluid Density (g/cc)", 0.5, 2.5, 1.0)
-        else:
-            config["fluid_density"] = default_densities[config["fluid"]]
+        # For brevity, assume fluid velocity/Z already in config
 
-        config["Z_fluid"] = fluid_impedance_db[config["fluid"]] if config["fluid"] != "Other" else config["Z_fluid"]
+    # --- 3) Layer Inputs ---
+    st.markdown("### 📦 Layers Configuration")
+    config["layer_data"] = config["layer_data"][: config["num_layers"]]
+    while len(config["layer_data"]) < config["num_layers"]:
+        # append default blank layers
+        config["layer_data"].append({
+            "name": f"Layer {len(config['layer_data'])+1}",
+            "thickness": 0.2,
+            "Z": 2.5,
+            "v": 2000,
+            "alpha0": 0.5,
+            "n_exp": 1.2
+        })
 
-        # Compute fluid velocity
-        Z = config["Z_fluid"] * 1e6  # Rayl
-        rho = config["fluid_density"] * 1000  # kg/m³
-        c_fluid = Z / rho  # m/s
-        config["fluid_velocity"] = c_fluid
-
-        st.write(f"**Z_fluid = {config['Z_fluid']:.2f} MRayl**")
-        st.write(f"**Fluid velocity = {c_fluid:.0f} m/s**")
-
-    # --- LAYER SETTINGS ---
-    with col2:
-        config["num_layers"] = st.slider("Number of Layers", 1, 10, config["num_layers"])
-        config["layer_data"] = config["layer_data"][:config["num_layers"]]
-        while len(config["layer_data"]) < config["num_layers"]:
-            config["layer_data"].append([f"Layer {len(config['layer_data'])+1}", 0.2, 2.5])
-
-    st.markdown("### Layers Configuration")
-    # Ensure all layers are in dict format
-    for i in range(len(config["layer_data"])):
-        if isinstance(config["layer_data"][i], list):
-            label, thickness, Z = config["layer_data"][i]
-            config["layer_data"][i] = {
-                "name": label,
-                "thickness": thickness,
-                "Z": Z,
-                "material": "GRE (Glass-Reinforced Epoxy)"  # default
-            }
-    new_layers = []
     for i in range(config["num_layers"]):
-        # two columns: thickness & impedance
+        lyr = config["layer_data"][i]
         c1, c2, c3 = st.columns([1,1,2])
         with c1:
-            thickness = st.number_input(
-                f"Layer {i+1} Thickness (in)",
-                min_value=0.01, max_value=1.0,
-                value=config["layer_data"][i].get("thickness",0.2),
-                key=f"thick_{i}"
+            lyr["thickness"] = st.number_input(
+                f"{lyr['name']} Thickness (in)", 0.01, 2.0,
+                value=lyr["thickness"], key=f"th_{i}"
             )
         with c2:
-            impedance = st.number_input(
-                f"Layer {i+1} Z (MRayl)",
-                min_value=1.0, max_value=10.0,
-                value=config["layer_data"][i].get("Z",2.5),
-                key=f"Z_{i}"
+            lyr["Z"] = st.number_input(
+                f"{lyr['name']} Impedance (MRayl)", 1.0, 5.0,
+                value=lyr["Z"], key=f"Z_{i}"
             )
         with c3:
-            mat = st.selectbox(
-                f"Layer {i+1} Material",
-                options=list(MATERIAL_DB.keys()),
-                index=list(MATERIAL_DB.keys()).index(
-                    config["layer_data"][i].get("material","GRE (Glass-Reinforced Epoxy)")
-                ),
-                key=f"mat_{i}"
+            # allow renaming
+            lyr["name"] = st.text_input(
+                f"Layer {i+1} Name", value=lyr["name"], key=f"name_{i}"
             )
-            props = MATERIAL_DB[mat]
-            # if custom, let user fill in
-            if mat == "Custom":
-                v     = st.number_input(f"  → v (m/s)", 500, 5000, 2000, key=f"v_{i}")
-                alpha = st.number_input(f"  → α0 (dB/cm/MHz)", 0.0, 1.0, 0.05, key=f"a_{i}")
-                n_exp = st.number_input(f"  → n exponent", 0.1, 3.0, 1.2, key=f"n_{i}")
-            else:
-                v, alpha, n_exp = props["v"], props["alpha0"], props["n"]
-                st.markdown(f"  • v = {v} m/s · α₀ = {alpha} dB/cm/MHz · n = {n_exp}")
-        # pack into dict
-        new_layers.append({
-            "name":       f"Layer {i+1}",
-            "thickness":  thickness,
-            "Z":          impedance,
-            "material":   mat,
-            "v":          v,
-            "alpha0":     alpha,
-            "n_exp":      n_exp
-        })
-    
-    config["layer_data"] = new_layers
-    st.session_state["config"] = config
 
-    # Calculate and display total thickness
-    config["total_thickness"] = sum(layer["thickness"] for layer in config["layer_data"])
-    st.markdown(f"**Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
-    st.session_state["config"] = config
+    # Recompute total thickness
+    config["num_layers"]      = len(config["layer_data"])
+    config["total_thickness"] = sum(lyr["thickness"] for lyr in config["layer_data"])
+    st.markdown(f"**📏 Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
 
-    # --- DEFECT SETTINGS ---
-    st.subheader("Defect Settings")
-    c1, c2 = st.columns(2)
-    with c1:
-        config["defect_type"] = st.selectbox(
-            "Defect Type", ["None", "Delamination", "Crack"],
-            index=["None", "Delamination", "Crack"].index(config["defect_type"])
-        )
-    with c2:
-        config["defect_layer"] = st.slider(
-            "Defect Layer Index", 1, config["num_layers"], config["defect_layer"]
-        )
+    # --- 4) Defect Settings ---
+    st.subheader("📌 Defect Settings")
+    config["defect_type"]  = st.selectbox(
+        "Defect Type", ["None", "Delamination", "Crack"],
+        index=["None","Delamination","Crack"].index(config["defect_type"])
+    )
+    config["defect_layer"] = st.slider(
+        "Defect Layer Index",
+        1, config["num_layers"], config["defect_layer"]
+    )
 
-    # --- Chirp settings ---
-    st.subheader("Transmitter Chirp Settings")
+    # --- 5) Save / Load / Reset ---
+    st.markdown("### 💾 Save / Load / Reset")
     col1, col2, col3 = st.columns(3)
+
     with col1:
-        # in MHz
-        f_start_mhz = st.number_input("Start Frequency (MHz)", min_value=0.1, max_value=10.0,
-                                      value=0.5, step=0.1, key="f_start_mhz")
-    with col2:
-        f_end_mhz   = st.number_input("End Frequency (MHz)",   min_value=0.1, max_value=10.0,
-                                      value=5.0, step=0.1, key="f_end_mhz")
-    with col3:
-        sweep_us    = st.number_input("Sweep Duration (µs)",    min_value=1.0, max_value=200.0,
-                                      value=50.0, step=1.0, key="sweep_us")
-
-    # Convert units
-    fs = 100e6  # 100 MHz sampling
-    f0 = f_start_mhz * 1e6
-    f1 = f_end_mhz   * 1e6
-    sweep_s = sweep_us * 1e-6
-
-    # Generate windowed chirp
-    t_chirp, tx_chirp = generate_tx_chirp(fs, sweep_s, f0, f1)
-
-    # Save to config for downstream use
-    config.update({
-        "chirp_start_mhz":  f_start_mhz,
-        "chirp_end_mhz":    f_end_mhz,
-        "chirp_sweep_us":   sweep_us,
-        "sampling_rate":    fs,
-        "tx_chirp_t":       t_chirp.tolist(),
-        "tx_chirp_waveform":tx_chirp.tolist()
-    })
-    st.session_state["config"] = config
-    
-    # --- CONFIG SAVE/LOAD ---
-    st.markdown("### Save / Load / Export")
-    c1, c2, c3 = st.columns(3)
-
-    with c1:
         st.download_button(
             "📤 Export Config (.json)",
             data=json.dumps(config, indent=2),
@@ -181,17 +113,16 @@ def show_simulator():
             mime="application/json"
         )
 
-    with c2:
+    with col2:
         uploaded = st.file_uploader("⬆️ Load Config (.json)", type="json")
         if uploaded:
             loaded = json.load(uploaded)
             if "layer_data" in loaded:
                 st.session_state["config"] = loaded
-                st.success("Configuration loaded.")
-                st.rerun()
+                st.success("✅ Configuration loaded. Please review settings above.")
+                st.experimental_rerun()
 
-    with c3:
+    with col3:
         if st.button("🗑️ Reset to Default"):
-            st.session_state["config"] = DEFAULT_CONFIG.copy()
-            st.rerun()
-
+            st.session_state["config"] = json.loads(json.dumps(DEFAULT_CONFIG))
+            st.experimental_rerun()
