@@ -36,82 +36,79 @@ def show_simulator():
 
     # --- Pipe Selection ---
     with col2:
-        config["pipe_type"] = st.selectbox("Select Pipe Type", ["Custom"] + list(PIPE_DB.keys()))
-        if config["pipe_type"] != "Custom":
-            config["layer_data"] = PIPE_DB[config["pipe_type"]]
-            config["num_layers"] = len(config["layer_data"])
-        else:
-            config["num_layers"] = st.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
+        pipe_type = st.radio("Select Pipe Type", ["Commercial Pipe", "Custom Pipe"], horizontal=True)
+        config["pipe_type"] = pipe_type
 
-    # --- Layer Configuration ---
-    st.markdown("### 📦 Layer Configuration")
-    layer_data = config["layer_data"][:config["num_layers"]]
-    while len(layer_data) < config["num_layers"]:
-        layer_data.append({
-            "name": f"Layer {len(layer_data)+1}",
-            "thickness": 0.2,
-            "Z": 2.5,
-            "material": "GRE (Glass-Reinforced Epoxy)",
-            "v": 2000,
-            "alpha0": 0.05,
-            "n_exp": 1.2,
-        })
-
-    updated_layers = []
-    for i in range(config["num_layers"]):
-        st.markdown(f"#### Layer {i+1}")
-        c1, c2, c3 = st.columns([1, 1, 2])
-        with c1:
-            thickness = st.number_input("Thickness (in)", 0.01, 1.0, layer_data[i]["thickness"], key=f"t_{i}")
-        with c2:
-            Z = st.number_input("Z (MRayl)", 1.0, 10.0, layer_data[i]["Z"], key=f"z_{i}")
-        with c3:
-            material = st.selectbox(
-                "Material", list(MATERIAL_DB.keys()),
-                index=list(MATERIAL_DB.keys()).index(layer_data[i].get("material", "GRE (Glass-Reinforced Epoxy)")),
-                key=f"mat_{i}"
+    if pipe_type == "Commercial Pipe":
+        pipe_name = st.selectbox("Choose a Pipe", list(PIPE_DB.keys()))
+        pipe = PIPE_DB[pipe_name]
+        st.markdown(f"**Description:** {pipe['description']}")
+        config["layer_data"] = pipe["layers"]
+        config["num_layers"] = len(pipe["layers"])
+        config["total_thickness"] = pipe["total_thickness"]
+        
+        # Display layers table
+        st.markdown("### 📋 Pipe Layers")
+        for i, layer in enumerate(config["layer_data"]):
+            st.markdown(
+                f"**Layer {i+1}: {layer['name']}**  \n"
+                f"Material: `{layer['material']}`  \n"
+                f"Z = `{layer['Z']}` MRayl, v = `{layer['v']}` m/s, "
+                f"α₀ = `{layer['alpha0']}` dB/cm/MHz, n = `{layer['n_exp']}`, "
+                f"Thickness = `{layer['thickness']}` in"
             )
-            props = MATERIAL_DB[material]
-            if material == "Custom":
-                v     = st.number_input("  → v (m/s)", 500, 10000, layer_data[i].get("v", 2000), key=f"v_{i}")
-                alpha = st.number_input("  → α0 (dB/cm/MHz)", 0.01, 1.0, layer_data[i].get("alpha0", 0.05), key=f"a_{i}")
-                n_exp = st.number_input("  → n exponent", 0.1, 3.0, layer_data[i].get("n_exp", 1.2), key=f"n_{i}")
+
+    elif pipe_type == "Custom Pipe":
+        config["num_layers"] = st.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
+        config["layer_data"] = config.get("layer_data", [])
+        config["layer_data"] = config["layer_data"][:config["num_layers"]]
+
+        while len(config["layer_data"]) < config["num_layers"]:
+            config["layer_data"].append({})
+
+        st.markdown("### ✏️ Configure Custom Layers")
+        for i in range(config["num_layers"]):
+            st.markdown(f"#### Layer {i+1}")
+            layer_type = st.selectbox(f"Layer Type", ["Select from DB", "Custom"], key=f"layer_type_{i}")
+
+            if layer_type == "Select from DB":
+                selected = st.selectbox("Select Layer", list(LAYER_DB.keys()), key=f"sel_{i}")
+                props = LAYER_DB[selected]
+                config["layer_data"][i] = {
+                    "name": selected,
+                    "material": selected,
+                    **props
+                }
+                st.markdown(f"Z = `{props['Z']}` MRayl, v = `{props['v']}` m/s, "
+                            f"α₀ = `{props['alpha0']}` dB/cm/MHz, n = `{props['n_exp']}`, "
+                            f"Thickness = `{props['thickness']}` in")
             else:
-                v, alpha, n_exp = props["v"], props["alpha0"], props["n"]
+                name = st.text_input(f"Layer {i+1} Name", f"Layer {i+1}", key=f"name_{i}")
+                thickness = st.number_input("Thickness (in)", 0.01, 1.0, 0.2, step=0.01, key=f"thick_{i}")
+                Z = st.number_input("Z (MRayl)", 1.0, 10.0, 2.5, step=0.1, key=f"Z_{i}")
+                v = st.number_input("v (m/s)", 500, 5000, 2000, step=10, key=f"v_{i}")
+                alpha0 = st.number_input("α₀ (dB/cm/MHz)", 0.0, 2.0, 0.05, step=0.01, key=f"alpha0_{i}")
+                n_exp = st.number_input("n exponent", 0.5, 3.0, 1.2, step=0.1, key=f"nexp_{i}")
+                config["layer_data"][i] = {
+                    "name": name, "material": "Custom", "thickness": thickness, "Z": Z,
+                    "v": v, "alpha0": alpha0, "n_exp": n_exp
+                }
 
-        updated_layers.append({
-            "name":      f"Layer {i+1}",
-            "thickness": thickness,
-            "Z":         Z,
-            "material":  material,
-            "v":         v,
-            "alpha0":    alpha,
-            "n_exp":     n_exp
-        })
-
-    config["layer_data"] = updated_layers
 
     # --- Total Thickness ---
     config["total_thickness"] = sum(l["thickness"] for l in config["layer_data"])
     st.markdown(f"**📏 Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
 
     # --- Defect Settings ---
-    st.subheader("📌 Defect Settings")
-    c1, c2 = st.columns(2)
-    with c1:
-        if config["num_layers"] == 1:
-            config["defect_type"] = "Crack"
-            st.markdown("Only **Crack** allowed for 1-layer pipe.")
-        else:
-            config["defect_type"] = st.selectbox(
-                "Defect Type", ["None", "Delamination", "Crack"],
-                index=["None", "Delamination", "Crack"].index(config["defect_type"])
-            )
-    with c2:
-        config["defect_layer"] = st.slider(
-            "Defect Layer Index", 1, config["num_layers"], config.get("defect_layer", 1)
-        )
+    st.markdown("### ⚠️ Defect Settings")
+    if config["num_layers"] == 1:
+        config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
+    else:
+        config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
 
+    config["defect_layer"] = st.slider("Defect Layer", 1, config["num_layers"], config.get("defect_layer", 1))
+
+ 
     # --- Chirp Settings ---
     st.subheader("🔊 Chirp Settings")
     c1, c2, c3 = st.columns(3)
