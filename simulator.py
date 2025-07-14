@@ -2,8 +2,7 @@
 
 import streamlit as st
 import json
-from config import DEFAULT_CONFIG
-from utils import PIPE_DB
+from config import DEFAULT_CONFIG, PIPE_DB
 
 # Ensure we have a session config
 if "config" not in st.session_state:
