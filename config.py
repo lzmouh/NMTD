@@ -106,55 +106,50 @@ LAYER_DB = {
 
 # ----- Default configuration -----
 DEFAULT_CONFIG = {
-    # Fluid & well conditions
-    "fluid":            "Water",
-    "fluid_density":    1.0,
-    "Z_fluid":          1.48,
-    "fluid_velocity":   1480,
+    "pipe_type": "Custom Pipe",
+    "fluid": "Water",
+    "fluid_density": 1.0,            # g/cc
+    "Z_fluid": 1.48,                 # MRayl
+    "fluid_velocity": 1480,          # m/s (computed dynamically if needed)
 
-    # Layers: list of dicts with per-layer params
-    "num_layers":       3,
+    "num_layers": 3,
     "layer_data": [
         {
-            "name":      "Layer 1",
-            "thickness": 0.2,
-            "Z":         2.5,
-            "material":  "GRE (Glass-Reinforced Epoxy)",
-            "v":         MATERIAL_DB["GRE (Glass-Reinforced Epoxy)"]["v"],
-            "alpha0":    MATERIAL_DB["GRE (Glass-Reinforced Epoxy)"]["alpha0"],
-            "n_exp":     MATERIAL_DB["GRE (Glass-Reinforced Epoxy)"]["n"]
+            "name": "Liner",
+            "material": "GRE (Glass-Reinforced Epoxy)",
+            "thickness": 0.15,
+            "Z": 2.6,
+            "v": 2500,
+            "alpha0": 0.03,
+            "n_exp": 1.2
         },
         {
-            "name":      "Layer 2",
-            "thickness": 0.3,
-            "Z":         3.0,
-            "material":  "HDPE",
-            "v":         MATERIAL_DB["HDPE"]["v"],
-            "alpha0":    MATERIAL_DB["HDPE"]["alpha0"],
-            "n_exp":     MATERIAL_DB["HDPE"]["n"]
+            "name": "Structural",
+            "material": "GRE (Glass-Reinforced Epoxy)",
+            "thickness": 0.6,
+            "Z": 3.2,
+            "v": 2700,
+            "alpha0": 0.05,
+            "n_exp": 1.3
         },
         {
-            "name":      "Layer 3",
-            "thickness": 0.5,
-            "Z":         2.8,
-            "material":  "RTP (Thermoplastic)",
-            "v":         MATERIAL_DB["RTP (Thermoplastic)"]["v"],
-            "alpha0":    MATERIAL_DB["RTP (Thermoplastic)"]["alpha0"],
-            "n_exp":     MATERIAL_DB["RTP (Thermoplastic)"]["n"]
+            "name": "Coating",
+            "material": "GRE (Glass-Reinforced Epoxy)",
+            "thickness": 0.25,
+            "Z": 2.2,
+            "v": 2400,
+            "alpha0": 0.02,
+            "n_exp": 1.1
         }
     ],
 
-    "total_thickness":  sum([0.2, 0.3, 0.5]),
+    "total_thickness": 1.0,           # in
 
-    # Defect settings
-    "defect_type":      "None",
-    "defect_layer":     1,
+    "defect_type": "None",            # or "Crack", "Delamination"
+    "defect_layer": 1,                # 1-indexed
 
-    # Chirp transmitter defaults
-    "chirp_start_mhz":  0.5,
-    "chirp_end_mhz":    5.0,
-    "chirp_sweep_us":   50.0,
-    "sampling_rate":    100e6,
-    "tx_chirp_t":       [],
-    "tx_chirp_waveform":[]
+    "f_start_mhz": 0.5,
+    "f_end_mhz": 5.0,
+    "sweep_us": 50.0,
+    "sampling_rate": 100_000_000      # Hz (100 MHz)
 }
