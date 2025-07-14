@@ -24,7 +24,7 @@ default_densities = {
 }
 
 # ----- Commercial pipes database -----
-PIPE_DB = {
+PIPES_DB = {
     "RTP_HDPE_Glass_HDPE": {
         "description": "Reinforced Thermoplastic Pipe with HDPE–Glass–HDPE layers",
         "layers": [
