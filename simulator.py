@@ -36,9 +36,9 @@ def show_simulator():
 
     # --- Pipe Selection ---
     with col2:
-        config["pipe_type"] = st.selectbox("Select Pipe Type", ["Custom"] + list(COMMERCIAL_PIPES.keys()))
+        config["pipe_type"] = st.selectbox("Select Pipe Type", ["Custom"] + list(PIPES_DB.keys()))
         if config["pipe_type"] != "Custom":
-            config["layer_data"] = COMMERCIAL_PIPES[config["pipe_type"]]
+            config["layer_data"] = PIPES_DB[config["pipe_type"]]
             config["num_layers"] = len(config["layer_data"])
         else:
             config["num_layers"] = st.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
