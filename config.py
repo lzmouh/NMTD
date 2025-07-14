@@ -23,6 +23,55 @@ default_densities = {
     "Diesel":                0.82
 }
 
+# ----- Commercial pipes database -----
+PIPE_DB = {
+    "RTP_HDPE_Glass_HDPE": {
+        "description": "Reinforced Thermoplastic Pipe with HDPE–Glass–HDPE layers",
+        "layers": [
+            {"name": "Inner HDPE", "material": "HDPE", "Z": 1.9, "v": 2200, "alpha0": 0.3, "n_exp": 1.2, "thickness": 0.2},
+            {"name": "Glass Reinforcement", "material": "Glass Fiber", "Z": 2.7, "v": 2700, "alpha0": 0.5, "n_exp": 1.4, "thickness": 0.4},
+            {"name": "Outer HDPE", "material": "HDPE", "Z": 1.9, "v": 2200, "alpha0": 0.3, "n_exp": 1.2, "thickness": 0.2}
+        ],
+        "bonded": True,
+        "total_thickness": 0.8,
+        "pressure_rating_bar": 200
+    },
+
+    "TCP_PEEK_Carbon_PEEK": {
+        "description": "Thermoplastic Composite Pipe with PEEK–Carbon–PEEK",
+        "layers": [
+            {"name": "Inner PEEK", "material": "PEEK", "Z": 2.3, "v": 2450, "alpha0": 0.4, "n_exp": 1.3, "thickness": 0.15},
+            {"name": "Carbon Fiber", "material": "Carbon Fiber", "Z": 3.5, "v": 2800, "alpha0": 0.6, "n_exp": 1.5, "thickness": 0.5},
+            {"name": "Outer PEEK", "material": "PEEK", "Z": 2.3, "v": 2450, "alpha0": 0.4, "n_exp": 1.3, "thickness": 0.15}
+        ],
+        "bonded": True,
+        "total_thickness": 0.8,
+        "temperature_C": 160
+    },
+
+    "GRE_Epoxy_GRE_Epoxy": {
+        "description": "Glass Reinforced Epoxy with alternating Epoxy–Glass–Epoxy layers",
+        "layers": [
+            {"name": "Inner Epoxy", "material": "Epoxy", "Z": 2.0, "v": 2500, "alpha0": 0.35, "n_exp": 1.3, "thickness": 0.15},
+            {"name": "Glass Reinforcement", "material": "Glass Fiber", "Z": 2.7, "v": 2700, "alpha0": 0.55, "n_exp": 1.4, "thickness": 0.4},
+            {"name": "Outer Epoxy", "material": "Epoxy", "Z": 2.0, "v": 2500, "alpha0": 0.35, "n_exp": 1.3, "thickness": 0.15}
+        ],
+        "bonded": True,
+        "total_thickness": 0.7,
+        "temperature_C": 120
+    },
+
+    "HDPE_SingleLayer": {
+        "description": "Standard HDPE single layer pipe",
+        "layers": [
+            {"name": "HDPE", "material": "HDPE", "Z": 1.9, "v": 2200, "alpha0": 0.3, "n_exp": 1.2, "thickness": 1.0}
+        ],
+        "bonded": False,
+        "total_thickness": 1.0,
+        "pressure_rating_bar": 160
+    }
+}
+
 # ----- Material properties database -----
 MATERIAL_DB = {
     "GRE (Glass-Reinforced Epoxy)":   {"v":2000, "alpha0":0.05, "n":1.2},
