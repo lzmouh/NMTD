@@ -2,7 +2,7 @@ import streamlit as st
 import json
 from config import (
     fluid_impedance_db, default_densities, INCH_TO_METER,
-    DEFAULT_GAP_INCH, MATERIAL_DB, DEFAULT_CONFIG, PIPES_DB
+    DEFAULT_GAP_INCH, MATERIAL_DB, DEFAULT_CONFIG, PIPE_DB
 )
 
 def show_simulator():
@@ -36,15 +36,15 @@ def show_simulator():
 
     # --- Pipe Selection ---
     with col2:
-        config["pipe_type"] = st.selectbox("Select Pipe Type", ["Custom"] + list(PIPES_DB.keys()))
+        config["pipe_type"] = st.selectbox("Select Pipe Type", ["Custom"] + list(PIPE_DB.keys()))
         if config["pipe_type"] != "Custom":
-            config["layer_data"] = PIPES_DB[config["pipe_type"]]
+            config["layer_data"] = PIPE_DB[config["pipe_type"]]
             config["num_layers"] = len(config["layer_data"])
         else:
             config["num_layers"] = st.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
 
     # --- Layer Configuration ---
-    st.markdown("### 📦 Layer Configuration")
+    st.markdown("### Layer Configuration")
     layer_data = config["layer_data"][:config["num_layers"]]
     while len(layer_data) < config["num_layers"]:
         layer_data.append({
@@ -93,10 +93,10 @@ def show_simulator():
 
     # --- Total Thickness ---
     config["total_thickness"] = sum(l["thickness"] for l in config["layer_data"])
-    st.markdown(f"**📏 Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
+    st.markdown(f"**Total Pipe Thickness: {config['total_thickness']:.2f} inches**")
 
     # --- Defect Settings ---
-    st.subheader("📌 Defect Settings")
+    st.subheader("Defect Settings")
     c1, c2 = st.columns(2)
     with c1:
         if config["num_layers"] == 1:
@@ -113,7 +113,7 @@ def show_simulator():
         )
 
     # --- Chirp Settings ---
-    st.subheader("🔊 Chirp Settings")
+    st.subheader("Chirp Settings")
     c1, c2, c3 = st.columns(3)
     config["f_start_mhz"] = c1.number_input("Start Freq (MHz)", 0.1, 10.0, 0.5)
     config["f_end_mhz"]   = c2.number_input("End Freq (MHz)",   0.1, 10.0, 5.0)
