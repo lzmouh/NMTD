@@ -2,7 +2,7 @@ import streamlit as st
 import json
 from config import (
     fluid_impedance_db, default_densities, INCH_TO_METER,
-    DEFAULT_GAP_INCH, MATERIAL_DB, DEFAULT_CONFIG, PIPE_DB
+    DEFAULT_GAP_INCH, LAYER_DB, DEFAULT_CONFIG, PIPE_DB
 )
 
 def show_simulator():
