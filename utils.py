@@ -4,11 +4,16 @@ from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
 from scipy.fft import fft, fftfreq
 from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 
-def generate_tx_chirp(fs, sweep_s, f_start, f_end):
+def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
+    sweep_s = sweep_us * 1e-6  # Convert µs to seconds
+    f_start = f_start_mhz * 1e6
+    f_end = f_end_mhz * 1e6
+
     n = int(fs * sweep_s)
     t_chirp = np.linspace(0, sweep_s, n, endpoint=False)
     tx = chirp(t_chirp, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
     tx *= windows.tukey(n, alpha=0.1)
+    
     return t_chirp, tx
 
 def calculate_group_delay(tx, fs):
