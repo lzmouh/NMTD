@@ -6,10 +6,10 @@ from config import INCH_TO_METER, DEFAULT_GAP_INCH, DEFAULT_VELOCITY
 
 def generate_tx_chirp(fs, sweep_s, f_start, f_end):
     n = int(fs * sweep_s)
-    t = np.linspace(0, sweep_s, n, endpoint=False)
+    t_chirp = np.linspace(0, sweep_s, n, endpoint=False)
     tx = chirp(t, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
     tx *= windows.tukey(n, alpha=0.1)
-    return t, tx
+    return t_chirp, tx
 
 def calculate_group_delay(tx, fs):
     spectrum = fft(tx)
