@@ -164,21 +164,22 @@ def show_simulator():
                 height=300
             )
             st.plotly_chart(fig_tx, use_container_width=True)
-    
-        # --- Frequency-Domain Plot ---
-        TX_FFT = np.fft.fft(tx)
-        freqs = np.fft.fftfreq(len(tx), d=1/fs)
-        mask = freqs > 0
-    
-        fig_fft = go.Figure()
-        fig_fft.add_trace(go.Scatter(x=freqs[mask] / 1e6, y=np.abs(TX_FFT[mask]), name="Spectrum"))
-        fig_fft.update_layout(
-            title="Frequency Spectrum",
-            xaxis_title="Frequency (MHz)",
-            yaxis_title="Magnitude",
-            height=300
-        )
-        st.plotly_chart(fig_fft, use_container_width=True)
+
+        with col2:
+            # --- Frequency-Domain Plot ---
+            TX_FFT = np.fft.fft(tx)
+            freqs = np.fft.fftfreq(len(tx), d=1/fs)
+            mask = freqs > 0
+        
+            fig_fft = go.Figure()
+            fig_fft.add_trace(go.Scatter(x=freqs[mask] / 1e6, y=np.abs(TX_FFT[mask]), name="Spectrum"))
+            fig_fft.update_layout(
+                title="Frequency Spectrum",
+                xaxis_title="Frequency (MHz)",
+                yaxis_title="Magnitude",
+                height=300
+            )
+            st.plotly_chart(fig_fft, use_container_width=True)
 
 
     
