@@ -51,18 +51,18 @@ def show_simulator():
 
     # --- COMMERCIAL PIPE CONFIG ---
     if pipe_type == "Commercial Pipe":
-        col1, col2, col3 = st.columns([1,2,1])
+        col1, col2, col3 = st.columns([1,3,1])
         with col2:
             pipe_name = st.selectbox("Select Pipe", list(PIPE_DB.keys()))
             pipe = PIPE_DB[pipe_name]
             config["layer_data"] = pipe["layers"]
             config["num_layers"] = len(pipe["layers"])
             config["total_thickness"] = pipe["total_thickness"]
-    
             st.markdown(f"**{pipe['description']}**")
-            st.markdown("### Layer Structure")
-            df = [{**l} for l in config["layer_data"]]
-            st.dataframe(df, use_container_width=True)
+            
+        st.markdown("### Layer Structure")
+        df = [{**l} for l in config["layer_data"]]
+        st.dataframe(df, use_container_width=True)
 
     # --- CUSTOM PIPE CONFIG ---
     elif pipe_type == "Custom Pipe":
