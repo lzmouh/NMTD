@@ -25,13 +25,13 @@ def bandpass_filter(signal, fs, fmin, fmax, order=4):
 
 def simulate_multimode(config):
     fs = config["sampling_rate"]
-    t_chirp = np.array(config["tx_chirp_t"])
-    tx = np.array(config["tx_chirp_waveform"])
+    t_chirp = np.array(config["t_chirp"])
+    tx = np.array(config["tx"])
     fluid_vel = config["fluid_velocity"]
     defect = config["defect_type"]
     defect_i = config["defect_layer"] - 1
     layers = config["layer_data"]
-    f0_mhz = (config["chirp_start_mhz"] + config["chirp_end_mhz"]) / 2
+    f0_mhz = (config["f_start_mhz"] + config["f_end_mhz"]) / 2
 
     gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
     depths = [gap_m]
