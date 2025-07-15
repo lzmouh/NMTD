@@ -19,7 +19,7 @@ def show_simulator():
 
     # --- SIDEBAR LAYOUT ---
     #st.sidebar.image("logo.png", use_container_width=True)
-    st.sidebar.title("🧰 Simulation Setup")
+    st.sidebar.title("### Simulation Setup")
 
     # FLUID SELECTION
     config["fluid"] = st.sidebar.selectbox("Borehole Fluid", list(fluid_impedance_db.keys()), index=0)
@@ -39,8 +39,9 @@ def show_simulator():
     config["pipe_type"] = pipe_type
 
     # MAIN PAGE HEADER
-    st.title("📊 NMTD Pipe Configuration")
-    st.markdown("Configure your test pipe and simulation parameters.")
+    st.title("Non-metalic Tubualrs Defectoscope NMTD")
+    st.subheader("Ultrasonic Simulation App")
+    #st.markdown("Configure your test pipe and simulation parameters.")
 
     # DISPLAY FLUID BOXES
     col1, col2, col3 = st.columns(3)
