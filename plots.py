@@ -28,7 +28,7 @@ def show_plots():
     
     t_chirp, tx = generate_tx_chirp(fs, sweep_s, f_start, f_end)
     config["t_chirp"] = t_chirp.tolist()
-    config["tx"] = tx_chirp.tolist()
+    config["tx"] = tx.tolist()
 
     # Chirp plots
     with st.expander("Transmitted Chirp Signal"):
