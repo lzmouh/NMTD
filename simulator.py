@@ -51,7 +51,7 @@ def show_simulator():
 
     # --- COMMERCIAL PIPE CONFIG ---
     if pipe_type == "Commercial Pipe":
-        col1, col2, col3 = st.columns(1,2,1)
+        col1, col2, col3 = st.columns()
         with col2:
             pipe_name = st.selectbox("Select Pipe", list(PIPE_DB.keys()))
             pipe = PIPE_DB[pipe_name]
