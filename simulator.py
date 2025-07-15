@@ -120,8 +120,7 @@ def show_simulator():
         )
  
     # --- Chirp Settings UI ---
-    st.subheader("🔊 Chirp Settings")
-    config = CONFIG.copy()
+    st.subheader("Chirp Settings")
     c1, c2, c3 = st.columns(3)
     config["f_start_mhz"] = c1.number_input("Start Freq (MHz)", 0.1, 10.0, config["f_start_mhz"])
     config["f_end_mhz"]   = c2.number_input("End Freq (MHz)",   0.1, 10.0, config["f_end_mhz"])
