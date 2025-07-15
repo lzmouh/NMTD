@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
-from utils import simulate_multimode, calculate_group_delay, bandpass_filter, generate_tx_chirp 
+from utils import simulate_multimode, calculate_group_delay, bandpass_filter
 
 def show_plots():
     st.title("Non-metalic Tubualrs Defectoscope NMTD")
@@ -20,15 +20,8 @@ def show_plots():
     fmin = st.sidebar.number_input("Min Freq (MHz)", 0.1, 20.0, 0.5) * 1e6
     fmax = st.sidebar.number_input("Max Freq (MHz)", 0.1, 20.0, 5.0) * 1e6
 
-    # Generate chirp
-    fs = config["sampling_rate"]
-    sweep_s = config.get("sweep_us", 50e-6)  # 50 µs default
-    f_start = config.get("f_start_mhz", 0.5) * 1e6
-    f_end   = config.get("f_end_mhz", 5.0) * 1e6
-    
-    t_chirp, tx = generate_tx_chirp(fs, sweep_s, f_start, f_end)
-    config["t_chirp"] = t_chirp.tolist()
-    config["tx"] = tx.tolist()
+    t_chirp = config["t_chirp"]
+    tx = config["tx"]
 
     # Chirp plots
     with st.expander("Transmitted Chirp Signal"):
