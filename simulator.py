@@ -4,7 +4,10 @@ from config import (
     fluid_impedance_db, default_densities, INCH_TO_METER,
     DEFAULT_GAP_INCH, LAYER_DB, DEFAULT_CONFIG, PIPE_DB
 )
-from utils import generate_tx_chirp
+import numpy as np
+import pandas as pd
+from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
+from scipy.fft import fft, fftfreq
 
 def show_simulator():
     st.title("NMTD Ultrasonic Response Simulator")
@@ -136,7 +139,11 @@ def show_simulator():
     f_start = config.get("f_start_mhz", 0.5) * 1e6
     f_end   = config.get("f_end_mhz", 5.0) * 1e6
     
-    t_chirp, tx = generate_tx_chirp(fs, sweep_s, f_start, f_end)
+    n = int(fs * sweep_s)
+    t_chirp = np.linspace(0, sweep_s, n, endpoint=False)
+    tx = chirp(t_chirp, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
+    tx *= windows.tukey(n, alpha=0.1)
+
     config["t_chirp"] = t_chirp.tolist()
     config["tx"] = tx.tolist()
     # --- Save to session ---
