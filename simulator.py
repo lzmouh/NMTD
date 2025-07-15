@@ -45,13 +45,13 @@ def show_simulator():
     #st.markdown("Configure your test pipe and simulation parameters.")
 
     # DISPLAY FLUID BOXES
-    # Create a one-row DataFrame with transposed layout
     df = pd.DataFrame([{
         "Fluid": config["fluid"],
         "Density (g/cc)": f"{config['fluid_density']:.2f}",
         "Z_fluid (MRayl)": f"{config['Z_fluid']:.2f}",
         "Velocity (m/s)": f"{config['fluid_velocity']:.0f}"
     }])
+    df.index = ['']
     st.table(df)  # or st.dataframe(df) for interactive version
 
     # --- COMMERCIAL PIPE CONFIG ---
