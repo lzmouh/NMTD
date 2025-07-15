@@ -22,7 +22,7 @@ def show_simulator():
 
     # --- Sidebar with Logo and Controls ---
     with st.sidebar:
-        st.image("company_logo.png", use_container_width=True)  # Add your logo here
+        #st.image("company_logo.png", use_container_width=True)  # Add your logo here
 
         st.markdown("## Configuration")
 
