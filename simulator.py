@@ -1,14 +1,10 @@
 import streamlit as st
 import json
+from utils import generate_tx_chirp
 from config import (
     fluid_impedance_db, default_densities, INCH_TO_METER,
     DEFAULT_GAP_INCH, LAYER_DB, DEFAULT_CONFIG, PIPE_DB
 )
-import numpy as np
-import pandas as pd
-from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
-from scipy.fft import fft, fftfreq
-import plotly.graph_objects as go
 
 def show_simulator():
     st.title("NMTD Ultrasonic Response Simulator")
@@ -123,32 +119,29 @@ def show_simulator():
             "Defect Layer Index", min_value=1, max_value=config["num_layers"], value=config["defect_layer"]
         )
  
-    # --- Chirp Settings ---
-    st.subheader("Chirp Settings")
+    # --- Chirp Settings UI ---
+    st.subheader("🔊 Chirp Settings")
+    config = CONFIG.copy()
     c1, c2, c3 = st.columns(3)
-    config["f_start_mhz"] = c1.number_input("Start Freq (MHz)", 0.1, 10.0, 0.5)
-    config["f_end_mhz"]   = c2.number_input("End Freq (MHz)",   0.1, 10.0, 5.0)
-    config["sweep_us"]    = c3.number_input("Sweep Duration (µs)", 10.0, 100.0, 50.0)
-    config["sampling_rate"] = 100e6  # 100 MHz
+    config["f_start_mhz"] = c1.number_input("Start Freq (MHz)", 0.1, 10.0, config["f_start_mhz"])
+    config["f_end_mhz"]   = c2.number_input("End Freq (MHz)",   0.1, 10.0, config["f_end_mhz"])
+    config["sweep_us"]    = c3.number_input("Sweep Duration (µs)", 10.0, 100.0, config["sweep_us"])
+    config["sampling_rate"] = 100e6  # or make this configurable later
+    
+    # --- Chirp Generation ---
+    fs = config["sampling_rate"]
+    t_chirp, tx = generate_tx_chirp(
+        fs,
+        sweep_us=config["sweep_us"],
+        f_start_mhz=config["f_start_mhz"],
+        f_end_mhz=config["f_end_mhz"]
+    )
     
     # --- Save to session ---
-    st.session_state["config"] = config
-    
-    # Generate chirp
-    fs = config["sampling_rate"]
-    sweep_s = config.get("sweep_us", 50.0) * 1e-6 
-    f_start = config.get("f_start_mhz", 0.5) * 1e6
-    f_end   = config.get("f_end_mhz", 5.0) * 1e6
-    
-    n = int(fs * sweep_s)
-    t_chirp = np.linspace(0, sweep_s, n, endpoint=False)
-    tx = chirp(t_chirp, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
-    tx *= windows.tukey(n, alpha=0.1)
-    
     config["t_chirp"] = t_chirp.tolist()
     config["tx"] = tx.tolist()
     st.session_state["config"] = config
-    
+        
     # Chirp plots
     with st.expander("Transmitted Chirp Signal"):
         col1, col2 = st.columns(2)
