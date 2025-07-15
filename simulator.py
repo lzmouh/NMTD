@@ -37,10 +37,10 @@ def show_simulator():
             config["Z_fluid"] = fluid_impedance_db[fluid]
 
         # Pipe Type and Layers
-        pipe_type = st.radio("Pipe Type", ["Commercial", "Custom"], index=["Commercial","Custom"].index(config.get("pipe_type", "Commercial")))
-        config["pipe_type"] = pipe_type
-        if pipe_type=="Custom":
-            config["num_layers"] = st.slider("Number of layers",1,10, config.get("num_layers",3))
+        st.markdown("---")
+        config["pipe_type"] = st.radio("Pipe Type", ["Commercial", "Custom"])
+        if config["pipe_type"] == "Custom":
+            config["num_layers"] = st.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
 
         # Chirp Inputs
         st.markdown("---")
