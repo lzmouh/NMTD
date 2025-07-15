@@ -44,10 +44,17 @@ def show_simulator():
     #st.markdown("Configure your test pipe and simulation parameters.")
 
     # DISPLAY FLUID BOXES
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Fluid", config["fluid"])
-    col2.metric("Z_fluid (MRayl)", f"{config['Z_fluid']:.2f}")
-    col3.metric("Velocity (m/s)", f"{config['fluid_velocity']:.0f}")
+    fluid_data = {
+        "Property": ["Fluid", "Density (g/cc)", "Z_fluid (MRayl)", "Velocity (m/s)"],
+        "Value": [
+            config["fluid"],
+            f"{config['fluid_density']:.2f}",
+            f"{config['Z_fluid']:.2f}",
+            f"{config['fluid_velocity']:.0f}"
+        ]
+    }
+    df = pd.DataFrame(fluid_data)
+    st.table(df.set_index("Property"))
 
     # --- COMMERCIAL PIPE CONFIG ---
     if pipe_type == "Commercial Pipe":
@@ -117,7 +124,7 @@ def show_simulator():
             config["defect_layer"] = st.slider("Defect Layer Index", 1, config["num_layers"], config.get("defect_layer", 1))
 
     # --- CHIRP SETTINGS ---
-    st.subheader("📡 Chirp Settings")
+    st.subheader("Chirp Settings")
     c1, c2, c3 = st.columns(3)
     config["f_start_mhz"] = c1.number_input("Start Freq (MHz)", 0.1, 10.0, config.get("f_start_mhz", 0.5))
     config["f_end_mhz"] = c2.number_input("End Freq (MHz)", 0.1, 10.0, config.get("f_end_mhz", 5.0))
@@ -136,7 +143,7 @@ def show_simulator():
     st.session_state["config"] = config
 
     # --- CHIRP PLOTS ---
-    with st.expander("🎧 Transmitted Chirp Preview"):
+    with st.expander("Transmitted Chirp Preview"):
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx, name="Tx Chirp"))
         fig1.update_layout(title="Chirp (Time)", xaxis_title="Time (µs)", height=300)
