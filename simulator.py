@@ -18,7 +18,7 @@ def show_simulator():
     config = st.session_state["config"]
 
     # --- SIDEBAR LAYOUT ---
-    st.sidebar.image("logo.png", use_column_width=True)
+    st.sidebar.image("logo.png", use_container_width=True)
     st.sidebar.title("🧰 Simulation Setup")
 
     # FLUID SELECTION
