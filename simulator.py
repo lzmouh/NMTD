@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
 from scipy.fft import fft, fftfreq
+import plotly.graph_objects as go
 
 def show_simulator():
     st.title("NMTD Ultrasonic Response Simulator")
