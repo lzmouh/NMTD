@@ -19,7 +19,7 @@ def show_simulator():
 
     # --- SIDEBAR LAYOUT ---
     #st.sidebar.image("logo.png", use_container_width=True)
-    st.sidebar.title("### Simulation Setup")
+    st.sidebar.title("#Simulation Setup")
 
     # FLUID SELECTION
     config["fluid"] = st.sidebar.selectbox("Borehole Fluid", list(fluid_impedance_db.keys()), index=0)
@@ -51,16 +51,18 @@ def show_simulator():
 
     # --- COMMERCIAL PIPE CONFIG ---
     if pipe_type == "Commercial Pipe":
-        pipe_name = st.selectbox("Select Pipe", list(PIPE_DB.keys()))
-        pipe = PIPE_DB[pipe_name]
-        config["layer_data"] = pipe["layers"]
-        config["num_layers"] = len(pipe["layers"])
-        config["total_thickness"] = pipe["total_thickness"]
-
-        st.markdown(f"**ℹ️ {pipe['description']}**")
-        st.markdown("### 📐 Layer Structure")
-        df = [{**l} for l in config["layer_data"]]
-        st.dataframe(df, use_container_width=True)
+        col1, col2, col3 = st.columns(1,2,1)
+        with col2:
+            pipe_name = st.selectbox("Select Pipe", list(PIPE_DB.keys()))
+            pipe = PIPE_DB[pipe_name]
+            config["layer_data"] = pipe["layers"]
+            config["num_layers"] = len(pipe["layers"])
+            config["total_thickness"] = pipe["total_thickness"]
+    
+            st.markdown(f"**{pipe['description']}**")
+            st.markdown("### Layer Structure")
+            df = [{**l} for l in config["layer_data"]]
+            st.dataframe(df, use_container_width=True)
 
     # --- CUSTOM PIPE CONFIG ---
     elif pipe_type == "Custom Pipe":
@@ -69,7 +71,7 @@ def show_simulator():
         while len(config["layer_data"]) < config["num_layers"]:
             config["layer_data"].append({})
 
-        st.markdown("### 🛠 Custom Layer Configuration")
+        st.markdown("### Custom Layer Configuration")
         cols = st.columns([1, 1, 1, 1, 1, 1])
         new_layers = []
         for i in range(config["num_layers"]):
@@ -92,16 +94,21 @@ def show_simulator():
 
     # --- TOTAL THICKNESS ---
     config["total_thickness"] = sum([l["thickness"] for l in config["layer_data"]])
-    st.info(f"📏 Total Pipe Thickness: **{config['total_thickness']:.2f}\"**")
+    st.info(f"Total Pipe Thickness: **{config['total_thickness']:.2f}\"**")
 
     # --- DEFECT SETTINGS ---
-    st.subheader("🧩 Defect Settings")
+    st.subheader("Defect Settings")
     if config["num_layers"] == 1:
-        config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
-        config["defect_layer"] = 1
-        st.markdown("ℹ️ Only 1 layer: delamination not possible.")
+        col1, col2 = st.columns(2)
+            with col1:
+                config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
+            with col2:
+                config["defect_layer"] = 1
+                st.markdown("ℹ️ Only 1 layer: delamination not possible.")
     else:
-        config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
+        col1, col2 = st.columns(2)
+            with col1:
+            config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
         config["defect_layer"] = st.slider("Defect Layer Index", 1, config["num_layers"], config.get("defect_layer", 1))
 
     # --- CHIRP SETTINGS ---
