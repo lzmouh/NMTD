@@ -104,7 +104,10 @@ def show_simulator():
             config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
         with col2:
             config["defect_layer"] = 1
-            st.markdown("Defect Layer Index")
+            st.markdown(
+                "<p style='font-size:16px;'>Defect Layer Index</p>",
+                unsafe_allow_html=True
+            )
             st.markdown("ℹ️ Only 1 layer: delamination not possible.")
     else:
         col1, col2 = st.columns(2)
