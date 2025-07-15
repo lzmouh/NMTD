@@ -51,9 +51,8 @@ def show_simulator():
         "Z_fluid (MRayl)": f"{config['Z_fluid']:.2f}",
         "Velocity (m/s)": f"{config['fluid_velocity']:.0f}"
     }])
-    df.index = ['']
-    st.table(df)  # or st.dataframe(df) for interactive version
-
+    st.dataframe(df, use_container_width=True, hide_index=True)
+    
     # --- COMMERCIAL PIPE CONFIG ---
     if pipe_type == "Commercial Pipe":
         col1, col2, col3 = st.columns([1,3,1])
