@@ -22,9 +22,9 @@ def show_simulator():
 
     # --- Sidebar with Logo and Controls ---
     with st.sidebar:
-        st.image("company_logo.png", use_column_width=True)  # Add your logo here
+        st.image("company_logo.png", use_container_width=True)  # Add your logo here
 
-        st.markdown("## 🧪 Configuration")
+        st.markdown("## Configuration")
 
         # Fluid Control
         fluid = st.selectbox("Fluid Type", list(fluid_impedance_db.keys()), index=list(fluid_impedance_db.keys()).index(config["fluid"]))
