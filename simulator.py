@@ -105,7 +105,7 @@ def show_simulator():
         with col2:
             config["defect_layer"] = 1
             st.markdown(
-                "<p style='font-size:16px;'>Defect Layer Index</p>",
+                "<p style='font-size:12px;'>Defect Layer Index</p>",
                 unsafe_allow_html=True
             )
             st.markdown("ℹ️ Only 1 layer: delamination not possible.")
