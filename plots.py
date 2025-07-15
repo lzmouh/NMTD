@@ -22,6 +22,8 @@ def show_plots():
 
     t_chirp = config["t_chirp"]
     tx = config["tx"]
+    t_chirp = np.asarray(t_chirp) 
+    tx = np.asarray(tx)
 
     # Chirp plots
     with st.expander("Transmitted Chirp Signal"):
