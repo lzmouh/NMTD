@@ -27,6 +27,8 @@ def show_plots():
     f_end   = config.get("f_end_mhz", 5.0) * 1e6
     
     t_chirp, tx = generate_tx_chirp(fs, sweep_s, f_start, f_end)
+    config["t_chirp"] = t_chirp.tolist()
+    config["tx"] = tx_chirp.tolist()
 
     # Chirp plots
     with st.expander("Transmitted Chirp Signal"):
