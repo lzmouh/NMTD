@@ -20,7 +20,7 @@ def show_simulator():
 
     # --- SIDEBAR LAYOUT ---
     #st.sidebar.image("logo.png", use_container_width=True)
-    st.sidebar.title("#Simulation Setup")
+    st.sidebar.title("Simulation Setup")
 
     # FLUID SELECTION
     config["fluid"] = st.sidebar.selectbox("Borehole Fluid", list(fluid_impedance_db.keys()), index=0)
@@ -68,33 +68,63 @@ def show_simulator():
         df = [{**l} for l in config["layer_data"]]
         st.dataframe(df, use_container_width=True)
 
-    # --- CUSTOM PIPE CONFIG ---
-    elif pipe_type == "Custom Pipe":
-        config["num_layers"] = st.sidebar.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
-        config["layer_data"] = config.get("layer_data", [])[:config["num_layers"]]
-        while len(config["layer_data"]) < config["num_layers"]:
-            config["layer_data"].append({})
+from config import MATERIAL_DB
 
-        st.markdown("### Custom Layer Configuration")
-        cols = st.columns([1, 1, 1, 1, 1, 1])
-        new_layers = []
-        for i in range(config["num_layers"]):
-            row = {}
-            with cols[0]:
-                row["name"] = st.text_input(f"Name {i+1}", config["layer_data"][i].get("name", f"Layer {i+1}"))
-            with cols[1]:
-                row["thickness"] = st.number_input(f"Thick (in) {i+1}", 0.01, 1.0, config["layer_data"][i].get("thickness", 0.2))
-            with cols[2]:
-                row["Z"] = st.number_input(f"Z (MRayl) {i+1}", 1.0, 10.0, config["layer_data"][i].get("Z", 2.5))
-            with cols[3]:
-                row["v"] = st.number_input(f"v (m/s) {i+1}", 500, 5000, config["layer_data"][i].get("v", 2500))
-            with cols[4]:
-                row["alpha0"] = st.number_input(f"α₀ {i+1}", 0.0, 1.0, config["layer_data"][i].get("alpha0", 0.05))
-            with cols[5]:
-                row["n_exp"] = st.number_input(f"n {i+1}", 0.5, 3.0, config["layer_data"][i].get("n_exp", 1.2))
-            row["material"] = "Custom"
-            new_layers.append(row)
-        config["layer_data"] = new_layers
+# --- CUSTOM PIPE CONFIG ---
+elif pipe_type == "Custom Pipe":
+    config["num_layers"] = st.sidebar.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
+    config["layer_data"] = config.get("layer_data", [])[:config["num_layers"]]
+    while len(config["layer_data"]) < config["num_layers"]:
+        config["layer_data"].append({})
+
+    st.markdown("### Custom Layer Configuration")
+    new_layers = []
+
+    for i in range(config["num_layers"]):
+        st.markdown(f"#### Layer {i+1}")
+        col1, col2 = st.columns([1, 3])
+
+        with col1:
+            source = st.radio(f"Source {i+1}", ["From DB", "Manual"], horizontal=False, key=f"source_{i}")
+        with col2:
+            name = st.text_input(f"Name", config["layer_data"][i].get("name", f"Layer {i+1}"), key=f"name_{i}")
+
+        if source == "From DB":
+            mat = st.selectbox("Material", list(MATERIAL_DB.keys()), key=f"mat_{i}")
+            props = MATERIAL_DB[mat]
+            editable = st.checkbox("Edit Material?", key=f"edit_{i}")
+
+            if editable:
+                v      = st.number_input("→ v (m/s)", 500, 5000, props["v"], key=f"v_{i}")
+                alpha0 = st.number_input("→ α₀ (dB/cm/MHz)", 0.0, 2.0, props["alpha0"], step=0.01, key=f"a0_{i}")
+                n_exp  = st.number_input("→ n exponent", 0.5, 3.0, props["n"], step=0.1, key=f"n_{i}")
+            else:
+                v, alpha0, n_exp = props["v"], props["alpha0"], props["n"]
+                st.markdown(f"**v = {v} m/s · α₀ = {alpha0} dB/cm/MHz · n = {n_exp}**")
+
+        else:  # Manual
+            mat = "Custom"
+            v      = st.number_input("v (m/s)", 500, 5000, config["layer_data"][i].get("v", 2000), key=f"v_{i}")
+            alpha0 = st.number_input("α₀ (dB/cm/MHz)", 0.0, 2.0, config["layer_data"][i].get("alpha0", 0.05), key=f"a0_{i}")
+            n_exp  = st.number_input("n exponent", 0.5, 3.0, config["layer_data"][i].get("n_exp", 1.2), key=f"n_{i}")
+
+        # Common inputs
+        thickness = st.number_input("Thickness (in)", 0.01, 1.0,
+                                    config["layer_data"][i].get("thickness", 0.2), key=f"t_{i}")
+        Z = st.number_input("Z (MRayl)", 1.0, 10.0, config["layer_data"][i].get("Z", 2.5), key=f"Z_{i}")
+
+        layer = {
+            "name": name,
+            "material": mat,
+            "thickness": thickness,
+            "Z": Z,
+            "v": v,
+            "alpha0": alpha0,
+            "n_exp": n_exp
+        }
+        new_layers.append(layer)
+
+    config["layer_data"] = new_layers
 
     # --- TOTAL THICKNESS ---
     config["total_thickness"] = sum([l["thickness"] for l in config["layer_data"]])
@@ -147,7 +177,7 @@ def show_simulator():
             fig1.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx, name="Tx Chirp"))
             fig1.update_layout(title="Chirp (Time)", xaxis_title="Time (µs)", height=300)
             st.plotly_chart(fig1, use_container_width=True)
-        with col2:
+        with c2:
             TX_FFT = np.fft.fft(tx)
             freqs = np.fft.fftfreq(len(tx), d=1/config["sampling_rate"])
             fig2 = go.Figure()
