@@ -141,17 +141,19 @@ def show_simulator():
 
     # --- CHIRP PLOTS ---
     with st.expander("Transmitted Chirp Preview"):
-        fig1 = go.Figure()
-        fig1.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx, name="Tx Chirp"))
-        fig1.update_layout(title="Chirp (Time)", xaxis_title="Time (µs)", height=300)
-        st.plotly_chart(fig1, use_container_width=True)
-
-        TX_FFT = np.fft.fft(tx)
-        freqs = np.fft.fftfreq(len(tx), d=1/config["sampling_rate"])
-        fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(TX_FFT[freqs > 0]), name="Spectrum"))
-        fig2.update_layout(title="Chirp (Freq)", xaxis_title="Frequency (MHz)", height=300)
-        st.plotly_chart(fig2, use_container_width=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            fig1 = go.Figure()
+            fig1.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx, name="Tx Chirp"))
+            fig1.update_layout(title="Chirp (Time)", xaxis_title="Time (µs)", height=300)
+            st.plotly_chart(fig1, use_container_width=True)
+        with col2:
+            TX_FFT = np.fft.fft(tx)
+            freqs = np.fft.fftfreq(len(tx), d=1/config["sampling_rate"])
+            fig2 = go.Figure()
+            fig2.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(TX_FFT[freqs > 0]), name="Spectrum"))
+            fig2.update_layout(title="Chirp (Freq)", xaxis_title="Frequency (MHz)", height=300)
+            st.plotly_chart(fig2, use_container_width=True)
 
     # --- SAVE / LOAD ---
     st.subheader("💾 Save / Load Configuration")
