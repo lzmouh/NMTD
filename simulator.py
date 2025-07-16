@@ -11,13 +11,14 @@ from utils import generate_tx_chirp
 
 def show_simulator():
     # --- INIT SESSION STATE ---
-    if "config" not in st.session_state:
-        st.session_state["config"] = DEFAULT_CONFIG.copy()
     if "config_loaded" not in st.session_state:
         st.session_state["config_loaded"] = False
 
-    config = st.session_state["config"]
+    if "config" not in st.session_state or not st.session_state["config_loaded"]:
+        st.session_state["config"] = DEFAULT_CONFIG.copy()
 
+    config = st.session_state["config"]
+    
     # --- SIDEBAR LAYOUT ---
     #st.sidebar.image("logo.png", use_container_width=True)
     st.sidebar.title("Simulation Setup")
