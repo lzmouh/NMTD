@@ -88,8 +88,8 @@ def show_simulator():
                 name = st.text_input(f"Name", config["layer_data"][i].get("name", f"Layer {i+1}"), key=f"name_{i}")
     
             if source == "From DB":
-                mat = st.selectbox("Material", list(MATERIAL_DB.keys()), key=f"mat_{i}")
-                props = MATERIAL_DB[mat]
+                mat = st.selectbox("Material", list(LAYER_DB.keys()), key=f"mat_{i}")
+                props = LAYER_DB[mat]
                 editable = st.checkbox("Edit Material?", key=f"edit_{i}")
     
                 if editable:
