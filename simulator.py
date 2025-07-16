@@ -67,60 +67,80 @@ def show_simulator():
         st.markdown("### Layer Structure")
         df = [{**l} for l in config["layer_data"]]
         st.dataframe(df, use_container_width=True)
-
+    
     # --- CUSTOM PIPE CONFIG ---
     elif pipe_type == "Custom Pipe":
-        config["num_layers"] = st.sidebar.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
+        # choose number of layers
+        config["num_layers"] = st.sidebar.slider(
+            "Number of Layers", 1, 10, config.get("num_layers", 3)
+        )
+    
+        # ensure layer_data list is right length
         config["layer_data"] = config.get("layer_data", [])[:config["num_layers"]]
         while len(config["layer_data"]) < config["num_layers"]:
             config["layer_data"].append({})
     
-        st.markdown("### Custom Layer Configuration")
+        st.markdown("### 🛠 Custom Layer Configuration")
+        header_cols = st.columns([2,1,1,1,1,1,1])
+        for label, width in zip(
+            ["Material", "Name", "Thick (in)", "Z (MRayl)", "v (m/s)", "α₀ (dB/cm/MHz)", "n_exp"],
+            [2,   2,         1,           1,         1,           1,                  1]
+        ):
+            header_cols[list(LAYER_DB.keys()).index(label) if label in LAYER_DB else 0].write(f"**{label}**")
+    
         new_layers = []
-    
+        options = ["New"] + list(LAYER_DB.keys())
         for i in range(config["num_layers"]):
-            st.markdown(f"#### Layer {i+1}")
-            col1, col2 = st.columns([1, 3])
+            row = config["layer_data"][i].copy()
+            cols = st.columns([2,2,1,1,1,1,1])
     
-            with col1:
-                source = st.radio(f"Source {i+1}", ["From DB", "Manual"], horizontal=False, key=f"source_{i}")
-            with col2:
-                name = st.text_input(f"Name", config["layer_data"][i].get("name", f"Layer {i+1}"), key=f"name_{i}")
+            # 1) material selector
+            mat = cols[0].selectbox(
+                f"", options, index=(options.index(row.get("material")) if row.get("material") in options else 0),
+                key=f"layer_sel_{i}"
+            )
+            row["material"] = mat
     
-            if source == "From DB":
-                mat = st.selectbox("Material", list(LAYER_DB.keys()), key=f"mat_{i}")
-                props = LAYER_DB[mat]
-                editable = st.checkbox("Edit Material?", key=f"edit_{i}")
+            # fetch DB props if not New
+            props = LAYER_DB.get(mat, {}) if mat != "New" else {}
     
-                if editable:
-                    v      = st.number_input("→ v (m/s)", 500, 5000, props["v"], key=f"v_{i}")
-                    alpha0 = st.number_input("→ α₀ (dB/cm/MHz)", 0.0, 2.0, props["alpha0"], step=0.01, key=f"a0_{i}")
-                    n_exp  = st.number_input("→ n exponent", 0.5, 3.0, props["n_exp"], step=0.1, key=f"n_{i}")
-                else:
-                    v, alpha0, n_exp = props["v"], props["alpha0"], props["n_exp"]
-                    st.markdown(f"**v = {v} m/s · α₀ = {alpha0} dB/cm/MHz · n = {n_exp}**")
+            # 2) name
+            row["name"] = cols[1].text_input(
+                "", row.get("name", props.get("name", f"Layer {i+1}")),
+                key=f"layer_name_{i}"
+            )
+            # 3) thickness
+            row["thickness"] = cols[2].number_input(
+                "", 0.01, 1.0,
+                row.get("thickness", props.get("thickness", 0.2)),
+                step=0.01, key=f"layer_thick_{i}"
+            )
+            # 4) Z
+            row["Z"] = cols[3].number_input(
+                "", 1.0, 10.0,
+                row.get("Z", props.get("Z", 2.5)),
+                step=0.1, key=f"layer_Z_{i}"
+            )
+            # 5) velocity
+            row["v"] = cols[4].number_input(
+                "", 500, 5000,
+                row.get("v", props.get("v", 2500)),
+                step=10, key=f"layer_v_{i}"
+            )
+            # 6) alpha0
+            row["alpha0"] = cols[5].number_input(
+                "", 0.0, 2.0,
+                row.get("alpha0", props.get("alpha0", 0.05)),
+                step=0.01, key=f"layer_a0_{i}"
+            )
+            # 7) n_exp
+            row["n_exp"] = cols[6].number_input(
+                "", 0.5, 3.0,
+                row.get("n_exp", props.get("n_exp", 1.2)),
+                step=0.1, key=f"layer_n_{i}"
+            )
     
-            else:  # Manual
-                mat = "Custom"
-                v      = st.number_input("v (m/s)", 500, 5000, config["layer_data"][i].get("v", 2000), key=f"v_{i}")
-                alpha0 = st.number_input("α₀ (dB/cm/MHz)", 0.0, 2.0, config["layer_data"][i].get("alpha0", 0.05), key=f"a0_{i}")
-                n_exp  = st.number_input("n exponent", 0.5, 3.0, config["layer_data"][i].get("n_exp", 1.2), key=f"n_{i}")
-    
-            # Common inputs
-            thickness = st.number_input("Thickness (in)", 0.01, 1.0,
-                                        config["layer_data"][i].get("thickness", 0.2), key=f"t_{i}")
-            Z = st.number_input("Z (MRayl)", 1.0, 10.0, config["layer_data"][i].get("Z", 2.5), key=f"Z_{i}")
-    
-            layer = {
-                "name": name,
-                "material": mat,
-                "thickness": thickness,
-                "Z": Z,
-                "v": v,
-                "alpha0": alpha0,
-                "n_exp": n_exp
-            }
-            new_layers.append(layer)
+            new_layers.append(row)
     
         config["layer_data"] = new_layers
 
