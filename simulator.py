@@ -95,9 +95,9 @@ def show_simulator():
                 if editable:
                     v      = st.number_input("→ v (m/s)", 500, 5000, props["v"], key=f"v_{i}")
                     alpha0 = st.number_input("→ α₀ (dB/cm/MHz)", 0.0, 2.0, props["alpha0"], step=0.01, key=f"a0_{i}")
-                    n_exp  = st.number_input("→ n exponent", 0.5, 3.0, props["n"], step=0.1, key=f"n_{i}")
+                    n_exp  = st.number_input("→ n exponent", 0.5, 3.0, props["n_exp"], step=0.1, key=f"n_{i}")
                 else:
-                    v, alpha0, n_exp = props["v"], props["alpha0"], props["n"]
+                    v, alpha0, n_exp = props["v"], props["alpha0"], props["n_exp"]
                     st.markdown(f"**v = {v} m/s · α₀ = {alpha0} dB/cm/MHz · n = {n_exp}**")
     
             else:  # Manual
