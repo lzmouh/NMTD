@@ -160,6 +160,7 @@ def show_simulator():
     config["t_chirp"] = t_chirp.tolist()
     config["tx"] = tx.tolist()
     st.session_state["config"] = config
+    st.session_state["config_loaded"] = True
 
     # --- CHIRP PLOTS ---
     with st.expander("Transmitted Chirp Preview"):
