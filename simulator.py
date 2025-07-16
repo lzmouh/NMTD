@@ -83,7 +83,14 @@ def show_simulator():
             with layer_cols[0]:
                 mat_name = st.selectbox(
                     f"Material {i+1}", ["New"] + list(LAYER_DB.keys()),
-                    index=0 if layer.get("material") == "Custom" else list(LAYER_DB.keys()).index(layer.get("material", "GRE (Glass-Reinforced Epoxy)")) + 1,
+                    mat_keys = list(LAYER_DB.keys())
+                    mat_value = layer.get("material", "New")
+                    index = 0 if mat_value == "Custom" or mat_value not in mat_keys else mat_keys.index(mat_value) + 1
+                    mat_name = st.selectbox(
+                        f"Material {i+1}", ["New"] + mat_keys,
+                        index=index,
+                        key=f"mat_{i}"
+                    )
                     key=f"mat_{i}"
                 )
 
