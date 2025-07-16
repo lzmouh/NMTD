@@ -81,19 +81,15 @@ def show_simulator():
         for i in range(config["num_layers"]):
             layer = config["layer_data"][i]
             with layer_cols[0]:
+                mat_keys = list(LAYER_DB.keys())
+                mat_value = layer.get("material", "New")
+                index = 0 if mat_value == "Custom" or mat_value not in mat_keys else mat_keys.index(mat_value) + 1
                 mat_name = st.selectbox(
-                    f"Material {i+1}", ["New"] + list(LAYER_DB.keys()),
-                    mat_keys = list(LAYER_DB.keys())
-                    mat_value = layer.get("material", "New")
-                    index = 0 if mat_value == "Custom" or mat_value not in mat_keys else mat_keys.index(mat_value) + 1
-                    mat_name = st.selectbox(
-                        f"Material {i+1}", ["New"] + mat_keys,
-                        index=index,
-                        key=f"mat_{i}"
-                    )
+                    f"Material {i+1}", ["New"] + mat_keys,
+                    index=index,
                     key=f"mat_{i}"
                 )
-
+                            
             if mat_name != "New":
                 props = LAYER_DB[mat_name]
                 editable = True
