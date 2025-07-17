@@ -15,6 +15,25 @@ def show_plots():
 
     config = st.session_state["config"]
 
+    # 1) Compute and display group delay
+    gd = calculate_group_delay(tx, fs)
+    st.info(f"🔧 Computed group delay: **{gd*1e6:.2f} µs**")
+
+    # Optional: show the chirp auto-correlation to verify delay
+    auto = np.correlate(tx, tx, mode='full')
+    t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
+    peak = t_auto[np.argmax(auto)]
+    with st.expander("🔍 Chirp Auto-correlation Debug", expanded=False):
+        st.line_chart({
+            "Auto-corr": auto
+        }, use_container_width=True)
+        st.write(f"Auto-corr peak at **{peak:.2f} µs** (should ≈ sweep_us/2)")
+
+    # 2) Roll by exactly that group delay
+    shift = int(round(gd * fs))
+    rx_aligned       = np.roll(rx_raw,       -shift)
+    compressed_aligned = np.roll(compressed_raw, -shift)
+   
     # Sidebar settings
     st.sidebar.header("Signal Processing")
     align = st.sidebar.checkbox("Align to Group Delay", True)
