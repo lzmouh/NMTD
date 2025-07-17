@@ -93,7 +93,8 @@ def simulate_multimode(config):
                 T *= 0.5
 
             amp = abs(R)
-            idx = int(round(tau_s * fs))
+            group_delay = len(tx) // 2 / fs 
+            idx = int(round((tau_s - group_delay) * fs))
             start = idx - len(p_i) // 2
             end = start + len(p_i)
             if 0 <= start and end <= len(rx):
