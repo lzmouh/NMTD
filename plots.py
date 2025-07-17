@@ -14,6 +14,18 @@ def show_plots():
         st.stop()
 
     config = st.session_state["config"]
+   
+    # Sidebar settings
+    st.sidebar.header("Signal Processing")
+    align = st.sidebar.checkbox("Align to Group Delay", True)
+    apply_filter = st.sidebar.checkbox("Apply Bandpass Filter", False)
+    fmin = st.sidebar.number_input("Min Freq (MHz)", 0.1, 20.0, 0.5) * 1e6
+    fmax = st.sidebar.number_input("Max Freq (MHz)", 0.1, 20.0, 5.0) * 1e6
+
+    # Extract chirp
+    fs = config["sampling_rate"]
+    t_chirp = np.array(config["t_chirp"])
+    tx = np.array(config["tx"])
 
     # 1) Compute and display group delay
     gd = calculate_group_delay(tx, fs)
@@ -33,19 +45,7 @@ def show_plots():
     shift = int(round(gd * fs))
     rx_aligned       = np.roll(rx_raw,       -shift)
     compressed_aligned = np.roll(compressed_raw, -shift)
-   
-    # Sidebar settings
-    st.sidebar.header("Signal Processing")
-    align = st.sidebar.checkbox("Align to Group Delay", True)
-    apply_filter = st.sidebar.checkbox("Apply Bandpass Filter", False)
-    fmin = st.sidebar.number_input("Min Freq (MHz)", 0.1, 20.0, 0.5) * 1e6
-    fmax = st.sidebar.number_input("Max Freq (MHz)", 0.1, 20.0, 5.0) * 1e6
-
-    # Extract chirp
-    fs = config["sampling_rate"]
-    t_chirp = np.array(config["t_chirp"])
-    tx = np.array(config["tx"])
-
+    
     # Chirp Plots
     with st.expander("Transmitted Chirp Signal", expanded=False):
         col1, col2 = st.columns(2)
