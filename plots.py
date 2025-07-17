@@ -107,6 +107,9 @@ def show_plots():
                           annotation_text=row["Layer"], annotation_position="top right")
         fig.update_layout(xaxis_title="Time (µs)", height=350)
         st.plotly_chart(fig, use_container_width=True)
+        
+    tt_gap = 2 * DEFAULT_GAP_INCH * INCH_TO_METER / config["fluid_velocity"] * 1e6
+    st.info(f"Expected first echo (gap interface) at ≈ {tt_gap:.2f} µs")
 
     # Spectrum of received signal
     st.subheader("📈 Received Signal Spectrum")
