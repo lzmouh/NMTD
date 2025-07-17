@@ -6,8 +6,12 @@ from utils import simulate_multimode, calculate_group_delay, bandpass_filter
 def show_plots():
     st.title("Non-metalic Tubualrs Defectoscope NMTD")
     st.subheader("Ultrasonic Simulation App")
+    
+    # --- INIT SESSION STATE ---
+    if "config_loaded" not in st.session_state:
+        st.session_state["config_loaded"] = False
 
-    if "config" not in st.session_state:
+    if "config" not in st.session_state or not st.session_state["config_loaded"]:
         st.warning("⚠️ Configuration not found. Please visit the **Simulator** page first.")
         st.stop()
 
