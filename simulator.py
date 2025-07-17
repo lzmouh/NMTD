@@ -163,7 +163,7 @@ def show_simulator():
     st.session_state["config_loaded"] = True
 
     # --- CHIRP PLOTS ---
-    with st.expander("Transmitted Chirp Preview"):
+    with st.expander("Transmitted Chirp Preview", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
             fig1 = go.Figure()
