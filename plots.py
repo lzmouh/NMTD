@@ -27,25 +27,6 @@ def show_plots():
     t_chirp = np.array(config["t_chirp"])
     tx = np.array(config["tx"])
 
-    # 1) Compute and display group delay
-    gd = calculate_group_delay(tx, fs)
-    st.info(f"🔧 Computed group delay: **{gd*1e6:.2f} µs**")
-
-    # Optional: show the chirp auto-correlation to verify delay
-    auto = np.correlate(tx, tx, mode='full')
-    t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
-    peak = t_auto[np.argmax(auto)]
-    with st.expander("🔍 Chirp Auto-correlation Debug", expanded=False):
-        st.line_chart({
-            "Auto-corr": auto
-        }, use_container_width=True)
-        st.write(f"Auto-corr peak at **{peak:.2f} µs** (should ≈ sweep_us/2)")
-
-    # 2) Roll by exactly that group delay
-    shift = int(round(gd * fs))
-    rx_aligned       = np.roll(rx_raw,       -shift)
-    compressed_aligned = np.roll(compressed_raw, -shift)
-    
     # Chirp Plots
     with st.expander("Transmitted Chirp Signal", expanded=False):
         col1, col2 = st.columns(2)
@@ -78,6 +59,27 @@ def show_plots():
     rx_aligned = np.roll(rx_raw, -shift)
     compressed_aligned = np.roll(compressed_raw, -shift)
 
+    # 1) Compute and display group delay
+    gd = calculate_group_delay(tx, fs)
+    st.info(f"🔧 Computed group delay: **{gd*1e6:.2f} µs**")
+
+    # Optional: show the chirp auto-correlation to verify delay
+    auto = np.correlate(tx, tx, mode='full')
+    t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
+    peak = t_auto[np.argmax(auto)]
+    with st.expander("🔍 Chirp Auto-correlation Debug", expanded=False):
+        st.line_chart({
+            "Auto-corr": auto
+        }, use_container_width=True)
+        st.write(f"Auto-corr peak at **{peak:.2f} µs** (should ≈ sweep_us/2)")
+
+    # 2) Roll by exactly that group delay
+    shift = int(round(gd * fs))
+    rx_aligned = np.roll(rx_raw, -shift)
+    compressed_aligned = np.roll(compressed_raw, -shift)
+    
+
+    
     # Apply optional bandpass filter
     if apply_filter:
         rx_aligned = bandpass_filter(rx_aligned, fs, fmin, fmax)
