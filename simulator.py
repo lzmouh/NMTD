@@ -188,7 +188,8 @@ def show_simulator():
         if uploaded and not st.session_state["config_loaded"]:
             st.session_state["config"] = json.load(uploaded)
             st.session_state["config_loaded"] = True
-            st.success("Configuration loaded. Please refresh or re-run.")
+            st.success("Configuration loaded.")
+            st.rerun()
     with c3:
         if st.button("🗑️ Reset"):
             st.session_state["config"] = DEFAULT_CONFIG.copy()
