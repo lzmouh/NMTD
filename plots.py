@@ -26,7 +26,7 @@ def show_plots():
     tx = np.asarray(tx)
 
     # Chirp plots
-    with st.expander("Transmitted Chirp Signal"):
+    with st.expander("Transmitted Chirp Signal", expanded=False):
         col1, col2 = st.columns(2)
     
         # --- Time-Domain Plot ---
@@ -73,7 +73,7 @@ def show_plots():
     df_mode1 = df[df["Mode"] == 1]
 
     # Raw data plots
-    with st.expander("Raw Data"):
+    with st.expander("Raw Data", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("Raw Signal")
@@ -90,7 +90,7 @@ def show_plots():
             st.plotly_chart(fig, use_container_width=True)
             
     # Processed data plots
-    with st.expander("Processed Data"):
+    with st.expander("Processed Data", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("Aligned Raw Signal")
