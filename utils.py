@@ -94,9 +94,11 @@ def simulate_multimode(config):
 
             amp = abs(R)
             idx = int(round(tau_s * fs))
-            if idx + len(p_i) < len(rx):
-                rx[idx:idx+len(p_i)] += amp * p_i
-
+            start = idx - len(p_i) // 2
+            end = start + len(p_i)
+            if 0 <= start and end <= len(rx):
+                rx[start:end] += amp * p_i
+    
             # --- Table output record ---
             if i == 0:
                 records.append({
