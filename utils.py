@@ -158,4 +158,4 @@ def simulate_multimode(config):
         print("[WARNING] Received signal is extremely weak or zero!")
 
     df = pd.DataFrame.from_records(records)
-    return t_rx, rx, compressed, freqs, df
+    return t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned
