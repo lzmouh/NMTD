@@ -54,9 +54,10 @@ def show_plots():
             auto = np.correlate(tx, tx, mode='full')
             t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
             peak = t_auto[np.argmax(auto)]
-            st.line_chart({
-                "Auto-corr": auto
-            }, use_container_width=True, height=300)
+            fig_cor.add_trace(go.Scatter(x=freqs[mask] / 1e6, y=np.abs(fft_tx[mask]), name="Spectrum"))
+            fig_cor.update_layout(title="Tx Auto Corr", xaxis_title="Time (µs)",
+                                  yaxis_title="Magnitude", height=300)
+            st.plotly_chart(fig_cor, use_container_width=True)
 
     # Simulate
     t_rx, rx_raw, compressed_raw, freqs, df = simulate_multimode(config)
