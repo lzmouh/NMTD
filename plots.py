@@ -60,17 +60,7 @@ def show_plots():
             st.plotly_chart(fig_cor, use_container_width=True)
     
     # --- Run simulation ---
-    t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(
-        tx=np.array(config["tx"]),
-        fs=config["sampling_rate"],
-        fluid_velocity=config["fluid_velocity"],
-        Z_fluid=config["Z_fluid"] * 1e6,  # Convert MRayl → Rayl
-        layer_data=config["layer_data"],
-        defect_type=config.get("defect_type", None),
-        defect_layer=config.get("defect_layer", None),
-        max_time=config["max_time"]
-    )
-
+    t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(config)
     time_us = t * 1e6  # Time in µs
 
     st.subheader("📈 Ultrasonic Signal Outputs")
