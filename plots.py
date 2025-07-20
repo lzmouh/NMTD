@@ -54,6 +54,7 @@ def show_plots():
             auto = np.correlate(tx, tx, mode='full')
             t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
             peak = t_auto[np.argmax(auto)]
+            fig_cor = go.Figure()
             fig_cor.add_trace(go.Scatter(x=t_auto, y=peak, name="Auto-corr"))
             fig_cor.update_layout(title="Tx Auto Corr", xaxis_title="Time (µs)",
                                   yaxis_title="Magnitude", height=300)
