@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
 from scipy.fft import fft, ifft, fftfreq
-from config import INCH_TO_METER, DEFAULT_GAP_INCH
+from config import FLUID_DB, INCH_TO_METER, DEFAULT_GAP_INCH
 
 def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
     sweep_s = sweep_us * 1e-6  # Convert µs to seconds
@@ -41,7 +41,18 @@ def simulate_multimode(config):
     t_chirp = np.array(config["t_chirp"])
     tx = np.array(config["tx"])
     layers = config["layer_data"]
-    fluid = config["fluid"]
+    fluid_name = config["fluid"]
+    if fluid_name == "Other":
+        # Custom fluid entered manually
+        c_f = config["fluid_velocity"]
+        rho_f = config["fluid_density"] * 1000  # g/cc → kg/m³
+        z_f = c_f * rho_f
+    else:
+        fluid = FLUID_DB[fluid_name]
+        z_f = fluid["Z"] * 1e6                  # MRayl → Rayl
+        rho_f = fluid["density"] * 1000         # g/cc → kg/m³
+        c_f = z_f / rho_f    
+        
     gap_thickness = 0.1 * 0.0254  # 0.1 inch in meters
 
     c_f = fluid["velocity"]
