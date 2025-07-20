@@ -28,109 +28,130 @@ def bandpass_filter(signal, fs, fmin, fmax, order=4):
     return sosfilt(sos, signal)
 
 def simulate_multimode(config):
+    # --- Unpack config ---
     fs = config["sampling_rate"]
     t_chirp = np.array(config["t_chirp"])
     tx = np.array(config["tx"])
     fluid_vel = config["fluid_velocity"]
-    defect = config["defect_type"]
-    defect_i = config["defect_layer"] - 1
+    defect_type = config["defect_type"]
+    defect_idx = config["defect_layer"] - 1
     layers = config["layer_data"]
     f0_mhz = (config["f_start_mhz"] + config["f_end_mhz"]) / 2
 
+    # --- Define depths for each interface (in meters) ---
     gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
     depths = [gap_m]
-    for lyr in layers:
-        depths.append(depths[-1] + lyr["thickness"] * INCH_TO_METER)
+    for layer in layers:
+        depths.append(depths[-1] + layer["thickness"] * INCH_TO_METER)
 
+    # --- Compute reflection and transmission coefficients ---
     R_list, T_list = [], []
     Z_prev = config["Z_fluid"]
-    for lyr in layers:
-        Z_curr = lyr["Z"]
+    for layer in layers:
+        Z_curr = layer["Z"]
         R = (Z_curr - Z_prev) / (Z_curr + Z_prev)
         T = 1 - R**2
         R_list.append(R)
         T_list.append(T)
         Z_prev = Z_curr
 
-    # Mode list includes fluid gap + each layer's acoustic properties
-    modes = [(fluid_vel, 0.0, 0.0)] + [
-        (lyr["v"], lyr.get("alpha0", 0.05), lyr.get("n_exp", 1.2)) for lyr in layers
-    ]
+    # --- Define modes: fluid + all layers ---
+    modes = [(fluid_vel, 0.0, 0.0)] + [(l["v"], l["alpha0"], l["n_exp"]) for l in layers]
 
-    max_delay = 2 * depths[-1] / min([v for v, _, _ in modes])
-    n_rx = int(fs * (max_delay + len(t_chirp)/fs + 10e-6))
-    rx = np.zeros(n_rx)
+    # --- Output signal time vector ---
+    max_depth = depths[-1]
+    max_delay = 2 * max_depth / min([v for v, _, _ in modes])
+    buffer_us = 10e-6
+    n_rx = int(fs * (max_delay + buffer_us + len(tx) / fs))
     t_rx = np.arange(n_rx) / fs
+    rx = np.zeros(n_rx)
 
-    freqs = fftfreq(len(tx), d=1/fs)
-    P = fft(tx)
-    beta = 0.05  # dispersion coefficient
+    # --- Chirp frequency content ---
+    freqs = fftfreq(len(tx), d=1 / fs)
+    P_tx = fft(tx)
+
+    # --- Group delay compensation ---
+    group_delay_s = len(tx) / 2 / fs  # e.g. 25 µs for 50 µs chirp
+
+    # --- Collect Mode 1 data for annotation ---
     records = []
 
+    # --- Loop over modes and depths ---
     for m_idx, (v, alpha0, n_exp) in enumerate(modes):
-        for i, depth in enumerate(depths):
-            tau_s = 2 * depth / v
-            alpha_f = alpha0 * (np.abs(freqs)/1e6)**n_exp * 100  # dB/m
-            H = 10 ** (-alpha_f * depth / 20)
-            c_f = v * (1 + beta * (np.abs(freqs)/1e6)**0.5)
-            D = np.exp(-1j * 2 * np.pi * freqs * (2 * depth / c_f))
-            P_i = P * H * D
-            p_i = np.real(np.fft.ifft(P_i))
+        beta = 0.05  # weak dispersion
 
+        for i, depth in enumerate(depths):
+            tau_s = 2 * depth / v  # round-trip travel time
+
+            # Frequency-dependent attenuation
+            alpha_f = alpha0 * (np.abs(freqs) / 1e6) ** n_exp * 100  # in dB/m
+            H = 10 ** (-alpha_f * depth / 20)
+
+            # Weak dispersion model
+            c_f = v * (1 + beta * (np.abs(freqs) / 1e6) ** 0.5)
+            D = np.exp(-1j * 2 * np.pi * freqs * (2 * depth / c_f))
+
+            # Apply attenuation and phase delay
+            P_mod = P_tx * H * D
+            echo = np.real(ifft(P_mod))
+
+            # Reflection & transmission amplitude
             if i == 0:
-                R = -1.0
+                R = -1.0  # fluid-gap front wall
                 T = 1.0
             else:
-                R = R_list[i-1]
-                T = T_list[i-1]
+                R = R_list[i - 1]
+                T = T_list[i - 1]
 
-            # Defect attenuation
-            if defect == "Delamination" and (i-1) == defect_i:
+            # Apply defect loss
+            if defect_type == "Delamination" and (i - 1) == defect_idx:
                 R *= 0.7
                 T *= 0.7
-            elif defect == "Crack" and (i-1) == defect_i:
+            elif defect_type == "Crack" and (i - 1) == defect_idx:
                 R *= 0.5
                 T *= 0.5
 
             amp = abs(R)
-            group_delay = len(tx) // 2 / fs 
-            idx = int(round((tau_s - group_delay) * fs))
-            start = idx - len(p_i) // 2
-            end = start + len(p_i)
-            if 0 <= start and end <= len(rx):
-                rx[start:end] += amp * p_i
-    
-            # --- Table output record ---
-            if i == 0:
-                records.append({
-                    "Mode": m_idx + 1,
-                    "Layer": "Fluid Gap",
-                    "Thickness (in)": round(DEFAULT_GAP_INCH, 3),
-                    "Z (MRayl)": round(config["Z_fluid"], 3),
-                    "α₀": 0.0,
-                    "n exp": 0.0,
-                    "R": round(R, 3),
-                    "T": round(T, 3),
-                    "Time (µs)": round(tau_s * 1e6, 2),
-                    "Amp": round(amp, 3)
-                })
-            elif i > 0:
-                lyr = layers[i-1]
-                records.append({
-                    "Mode": m_idx + 1,
-                    "Layer": lyr["name"],
-                    "Thickness (in)": round(lyr["thickness"], 3),
-                    "Z (MRayl)": round(lyr["Z"], 3),
-                    "α₀": round(lyr.get("alpha0", alpha0), 3),
-                    "n exp": round(lyr.get("n_exp", n_exp), 3),
-                    "R": round(R, 3),
-                    "T": round(T, 3),
-                    "Time (µs)": round(tau_s * 1e6, 2),
-                    "Amp": round(amp, 3)
-                })
 
-    # Pulse compression
-    compressed = fftconvolve(rx, tx[::-1], mode='same')
+            # --- Echo insertion with group delay alignment ---
+            idx_center = int(round((tau_s - group_delay_s) * fs))
+            half_len = len(echo) // 2
+            start = idx_center - half_len
+            end = start + len(echo)
+
+            # Insert echo if within bounds
+            if start >= 0 and end <= len(rx):
+                rx[start:end] += amp * echo
+
+            # --- Record mode 1 events only ---
+            if m_idx == 0:
+                if i == 0:
+                    # Fluid gap
+                    tt_us = 2 * gap_m / fluid_vel * 1e6
+                    records.append({
+                        "Mode": 1, "Layer": "Fluid Gap",
+                        "Thickness (in)": round(DEFAULT_GAP_INCH, 3),
+                        "Z (MRayl)": round(config["Z_fluid"], 3),
+                        "α0": 0, "n exp": 0,
+                        "R": -1.0, "T": 1.0,
+                        "Time (µs)": round(tt_us, 2),
+                        "Amp": round(amp, 3)
+                    })
+                elif i > 0:
+                    lyr = layers[i - 1]
+                    records.append({
+                        "Mode": 1, "Layer": lyr["name"],
+                        "Thickness (in)": round(lyr["thickness"], 3),
+                        "Z (MRayl)": round(lyr["Z"], 3),
+                        "α0": round(alpha0, 3), "n exp": round(n_exp, 3),
+                        "R": round(R, 3), "T": round(T, 3),
+                        "Time (µs)": round(tau_s * 1e6, 2),
+                        "Amp": round(amp, 3)
+                    })
+
+    # --- Pulse compression via matched filtering ---
+    compressed = fftconvolve(rx, tx[::-1], mode="same")
+
+    # --- Return time vector, raw, compressed, spectrum freqs, and mode 1 dataframe ---
     df = pd.DataFrame.from_records(records)
-
     return t_rx, rx, compressed, freqs, df
