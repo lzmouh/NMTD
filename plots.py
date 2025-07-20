@@ -86,8 +86,6 @@ def show_plots():
     rx_aligned = np.roll(rx_raw, -shift)
     compressed_aligned = np.roll(compressed_raw, -shift)
     
-
-    
     # Apply optional bandpass filter
     if apply_filter:
         rx_aligned = bandpass_filter(rx_aligned, fs, fmin, fmax)
