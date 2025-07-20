@@ -5,15 +5,29 @@ import streamlit as st
 import plotly.graph_objects as go
 from utils import simulate_multimode
 
-def show_plots(config):
-    # --- INIT SESSION STATE ---
+def show_plots():
+    st.title("Non-Metallic Tubulars Defectoscope (NMTD)")
+    st.subheader("Ultrasonic Signal Processing & Visualization")
+
     if "config_loaded" not in st.session_state:
         st.session_state["config_loaded"] = False
-
     if "config" not in st.session_state or not st.session_state["config_loaded"]:
-        st.session_state["config"] = DEFAULT_CONFIG.copy()
+        st.warning("⚠️ Configuration not found. Please visit the **Simulator** page first.")
+        st.stop()
 
     config = st.session_state["config"]
+
+    # Sidebar settings
+    st.sidebar.header("Signal Processing")
+    align = st.sidebar.checkbox("Align to Group Delay", True)
+    apply_filter = st.sidebar.checkbox("Apply Bandpass Filter", False)
+    fmin = st.sidebar.number_input("Min Freq (MHz)", 0.1, 20.0, 0.5) * 1e6
+    fmax = st.sidebar.number_input("Max Freq (MHz)", 0.1, 20.0, 5.0) * 1e6
+
+    # Extract chirp
+    fs = config["sampling_rate"]
+    t_chirp = np.array(config["t_chirp"])
+    tx = np.array(config["tx"])
     
     # --- Run simulation ---
     t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(
