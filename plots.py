@@ -72,6 +72,18 @@ def show_plots():
     t_rx, rx_raw, compressed_raw, freqs, df = simulate_multimode(config)
     df_mode1 = df[df["Mode"] == 1]
 
+    #Debuggggggggg
+    with st.expander("🔍 Debug Info"):
+        st.write("TX max amplitude:", np.max(np.abs(tx)))
+        st.write("TX length:", len(tx))
+        st.write("fs (sampling rate):", fs)
+        st.write("Number of layers:", len(layers))
+        st.write("Max delay (s):", max_delay)
+        st.write("n_rx (receiver samples):", n_rx)
+        st.write("rx_raw max:", np.max(np.abs(rx_raw)))
+        st.write("compressed_raw max:", np.max(np.abs(compressed_raw)))
+
+    
     # Align using group delay
     shift = int(calculate_group_delay(tx, fs) * fs) if align else 0
     rx_aligned = np.roll(rx_raw, -shift)
