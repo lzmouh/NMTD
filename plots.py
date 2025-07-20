@@ -52,13 +52,30 @@ def show_plots():
         # Tx chirp auto-correlation
         with col3:
             auto = np.correlate(tx, tx, mode='full')
-            t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
-            peak = t_auto[np.argmax(auto)]
+            t_auto = (np.arange(len(auto)) - len(tx) + 1) / fs * 1e6  # Time in µs
+            peak_time = t_auto[np.argmax(auto)]
+        
             fig_cor = go.Figure()
-            fig_cor.add_trace(go.Scatter(x=t_auto, y=peak, name="Auto-corr"))
-            fig_cor.update_layout(title="Tx Auto Corr", xaxis_title="Time (µs)",
-                                  yaxis_title="Magnitude", height=300)
-            st.plotly_chart(fig_cor, use_container_width=True)
+        
+            # Plot the full autocorrelation signal
+            fig_cor.add_trace(go.Scatter(x=t_auto, y=auto, name="Auto-corr"))
+        
+            # Optionally add a vertical line at the peak
+            fig_cor.add_trace(go.Scatter(
+                x=[peak_time, peak_time],
+                y=[np.min(auto), np.max(auto)],
+                mode='lines',
+                name=f"Peak @ {peak_time:.2f} µs",
+                line=dict(dash='dash', color='red')
+            ))
+
+    fig_cor.update_layout(
+        title="Tx Auto Corr",
+        xaxis_title="Time (µs)",
+        yaxis_title="Magnitude",
+        height=300
+    )
+    st.plotly_chart(fig_cor, use_container_width=True)
 
     # Simulate
     t_rx, rx_raw, compressed_raw, freqs, df = simulate_multimode(config)
