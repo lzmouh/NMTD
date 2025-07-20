@@ -28,6 +28,12 @@ def bandpass_filter(signal, fs, fmin, fmax, order=4):
     return sosfilt(sos, signal)
 
 def simulate_multimode(config):
+    import numpy as np
+    import pandas as pd
+    from scipy.fft import fft, ifft, fftfreq
+    from scipy.signal import fftconvolve
+    from config import INCH_TO_METER, DEFAULT_GAP_INCH
+
     # --- Unpack configuration ---
     fs = config["sampling_rate"]
     t_chirp = np.array(config["t_chirp"])
@@ -36,11 +42,12 @@ def simulate_multimode(config):
     defect_type = config["defect_type"]
     defect_idx = config["defect_layer"] - 1
     layers = config["layer_data"]
-    f0_mhz = (config["f_start_mhz"] + config["f_end_mhz"]) / 2
+    f_start_mhz = config["f_start_mhz"]
+    f_end_mhz = config["f_end_mhz"]
 
     # --- Interface depths (in meters) ---
     gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
-    depths = [gap_m]  # fluid gap
+    depths = [gap_m]  # initial fluid gap
     for layer in layers:
         depths.append(depths[-1] + layer["thickness"] * INCH_TO_METER)
 
@@ -58,7 +65,7 @@ def simulate_multimode(config):
     # --- Propagation modes: fluid + all layers ---
     modes = [(fluid_vel, 0.0, 0.0)] + [(l["v"], l["alpha0"], l["n_exp"]) for l in layers]
 
-    # --- Max delay and time array ---
+    # --- Max delay and time axis ---
     max_depth = depths[-1]
     min_velocity = min([v for v, _, _ in modes])
     max_delay = 2 * max_depth / min_velocity
@@ -71,41 +78,41 @@ def simulate_multimode(config):
     freqs = fftfreq(len(tx), d=1/fs)
     P_tx = fft(tx)
 
-    # --- Group delay center for time alignment ---
+    # --- Group delay center for echo alignment ---
     group_delay_s = len(tx) / 2 / fs
 
-    # --- Data recording ---
+    # --- Echo metadata ---
     records = []
 
-    # --- Loop over all modes and depths ---
+    # --- Loop over all modes and interfaces ---
     for m_idx, (v, alpha0, n_exp) in enumerate(modes):
-        beta = 0.05  # weak dispersion factor
+        beta = 0.05  # weak dispersion
 
         for i, depth in enumerate(depths):
-            tau_s = 2 * depth / v  # round-trip time
+            tau_s = 2 * depth / v  # round-trip travel time
 
-            # Frequency-dependent attenuation (in dB/m) and apply in magnitude
-            alpha_f = alpha0 * (np.abs(freqs)/1e6)**n_exp * 100  # dB/m → dB
+            # Frequency-dependent attenuation (in dB/m)
+            alpha_f = alpha0 * (np.abs(freqs)/1e6)**n_exp * 100  # dB/m
             H = 10 ** (-alpha_f * depth / 20)
 
-            # Dispersion model (β model) applied in phase
+            # Dispersion (β model)
             c_f = v * (1 + beta * (np.abs(freqs)/1e6)**0.5)
             phase_shift = -2 * np.pi * freqs * (2 * depth / c_f)
             D = np.exp(1j * phase_shift)
 
-            # Modified frequency-domain echo
+            # Total frequency-domain response
             P_mod = P_tx * H * D
             echo = np.real(ifft(P_mod))
 
-            # Reflection and transmission coefficients
+            # Reflection and transmission
             if i == 0:
-                R = -1.0  # fluid gap reflection (probe face)
+                R = -1.0
                 T = 1.0
             else:
                 R = R_list[i - 1]
                 T = T_list[i - 1]
 
-            # Defect attenuation
+            # Defect modeling
             if defect_type == "Delamination" and (i - 1) == defect_idx:
                 R *= 0.7
                 T *= 0.7
@@ -115,34 +122,39 @@ def simulate_multimode(config):
 
             amp = abs(R)
 
-            # Echo alignment: group-delay compensated
+            # Echo alignment
             idx_center = int(round((tau_s - group_delay_s) * fs))
             half_len = len(echo) // 2
             start = idx_center - half_len
             end = start + len(echo)
 
-            # Boundary check
+            # Clip to buffer range
             if start >= 0 and end <= len(rx):
                 rx[start:end] += amp * echo
 
-            # Metadata for this echo
+            # Layer metadata
             if i == 0:
                 layer_name = "Fluid Gap"
                 thick = DEFAULT_GAP_INCH
                 Z = config["Z_fluid"]
+                a0 = 0.0
+                n = 0.0
             else:
                 layer = layers[i - 1]
                 layer_name = layer["name"]
                 thick = layer["thickness"]
                 Z = layer["Z"]
+                a0 = layer["alpha0"]
+                n = layer["n_exp"]
 
+            # Record metadata
             records.append({
                 "Mode": m_idx + 1,
                 "Layer": layer_name,
                 "Thickness (in)": round(thick, 3),
                 "Z (MRayl)": round(Z, 3),
-                "α0": round(alpha0, 3),
-                "n exp": round(n_exp, 3),
+                "α0": round(a0, 3),
+                "n exp": round(n, 3),
                 "R": round(R, 3),
                 "T": round(T, 3),
                 "Time (µs)": round(tau_s * 1e6, 2),
@@ -152,6 +164,6 @@ def simulate_multimode(config):
     # --- Matched filter (pulse compression) ---
     compressed = fftconvolve(rx, tx[::-1], mode='same')
 
-    # --- Output dataframe ---
+    # --- Return outputs ---
     df = pd.DataFrame.from_records(records)
     return t_rx, rx, compressed, freqs, df
