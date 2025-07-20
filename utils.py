@@ -154,4 +154,12 @@ def simulate_multimode(config):
 
     # --- Return time vector, raw, compressed, spectrum freqs, and mode 1 dataframe ---
     df = pd.DataFrame.from_records(records)
+
+    print("TX peak amplitude:", np.max(np.abs(tx)))
+    print("TX length:", len(tx))
+    print("fs:", fs)
+    print("Layer count:", len(layers))
+    print("Max delay:", max_delay)
+    print("n_rx (receiver buffer size):", n_rx)    
+
     return t_rx, rx, compressed, freqs, df
