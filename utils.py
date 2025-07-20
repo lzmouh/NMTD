@@ -97,9 +97,10 @@ def simulate_multimode(config):
             "α₀": alpha0,
             "n_exp": n_exp,
             "R": R,
-            "T": T
+            "T": T,
+            "IsDirect": True
         })
-
+    
         # Update TOF for next layer
         tof += 2 * d / c
         z_f = z  # fluid becomes this layer (next reflection interface)
