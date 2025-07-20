@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from utils import simulate_multimode
-import json
+
 
 def show_plots():
     st.title("Non-Metallic Tubulars Defectoscope (NMTD)")
@@ -58,8 +58,6 @@ def show_plots():
             fig_cor.add_trace(go.Scatter(x=t_auto, y=auto, name="Auto-corr"))
             fig_cor.update_layout(title="Tx Auto Corr", xaxis_title="Time (µs)", yaxis_title="Magnitude", height=300)
             st.plotly_chart(fig_cor, use_container_width=True)
-
-    st.code(json.dumps(config, indent=2), language='json')
     
     # --- Run simulation ---
     t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(
