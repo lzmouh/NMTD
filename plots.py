@@ -60,7 +60,7 @@ def show_plots():
             st.plotly_chart(fig_cor, use_container_width=True)
     
     # --- Run simulation ---
-    t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(config)
+    t, rx, df, rx_aligned, rx_compressed = simulate_multimode(config)
     time_us = t * 1e6  # Time in µs
 
     st.subheader("📈 Ultrasonic Signal Outputs")
