@@ -159,5 +159,19 @@ def show_plots():
         #st.write("n_rx (receiver samples):", n_rx)
         st.write("rx_raw max:", np.max(np.abs(rx_raw)))
         st.write("compressed_raw max:", np.max(np.abs(compressed_raw)))
-
+    # --- Full Echo Table for All Modes ---
+    with st.expander("All Echoes (All Modes)", expanded=False):
+        df_display = df.copy()
+        df_display.index = df_display.index + 1  # Optional: start index from 1
+        st.dataframe(df_display.style.format({
+            "Thickness (in)": "{:.3f}",
+            "Z (MRayl)": "{:.2f}",
+            "α₀": "{:.3f}",
+            "n_exp": "{:.2f}",
+            "R": "{:.2f}",
+            "T": "{:.2f}",
+            "Time (µs)": "{:.2f}",
+            "Amp": "{:.3f}",
+        }), height=400)
     
+        
