@@ -4,7 +4,7 @@ import numpy as np
 import json
 import plotly.graph_objects as go
 from config import (
-    DEFAULT_CONFIG, fluid_impedance_db, default_densities,
+    DEFAULT_CONFIG, FLUID_DB, default_densities,
     PIPE_DB, LAYER_DB, INCH_TO_METER
 )
 from utils import generate_tx_chirp
@@ -24,17 +24,21 @@ def show_simulator():
     st.sidebar.title("Simulation Setup")
 
     # FLUID SELECTION
-    config["fluid"] = st.sidebar.selectbox("Borehole Fluid", list(fluid_impedance_db.keys()), index=0)
+    fluid_names = list(FLUID_DB.keys())
+    config["fluid"] = st.sidebar.selectbox("Borehole Fluid", fluid_names, index=0)
+    
     if config["fluid"] == "Other":
         config["fluid_density"] = st.sidebar.number_input("Fluid Density (g/cc)", 0.5, 2.5, 1.0)
         config["Z_fluid"] = st.sidebar.number_input("Z_fluid (MRayl)", 1.0, 3.0, 1.5)
     else:
-        config["fluid_density"] = default_densities[config["fluid"]]
-        config["Z_fluid"] = fluid_impedance_db[config["fluid"]]
-
-    rho = config["fluid_density"] * 1000
-    Z = config["Z_fluid"] * 1e6
-    config["fluid_velocity"] = Z / rho
+        fluid_data = FLUID_DB[config["fluid"]]
+        config["fluid_density"] = fluid_data["density"]
+        config["Z_fluid"] = fluid_data["Z"]
+    
+    # Compute fluid velocity
+    rho = config["fluid_density"] * 1000     # g/cc → kg/m³
+    Z = config["Z_fluid"] * 1e6              # MRayl → Rayl
+    config["fluid_velocity"] = Z / rho       # m/s
 
     # PIPE TYPE TOGGLE
     pipe_type = st.sidebar.radio("Pipe Configuration", ["Commercial Pipe", "Custom Pipe"], index=0)
