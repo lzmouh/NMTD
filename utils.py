@@ -40,7 +40,7 @@ def simulate_multimode(config):
     fs = config["sampling_rate"]
     t_chirp = np.array(config["t_chirp"])
     tx = np.array(config["tx"])
-    layers = config["pipe_layers"]
+    layers = config["layer_data"]
     fluid = config["fluid"]
     gap_thickness = 0.1 * 0.0254  # 0.1 inch in meters
 
