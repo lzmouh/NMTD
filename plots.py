@@ -60,22 +60,13 @@ def show_plots():
             # Plot the full autocorrelation signal
             fig_cor.add_trace(go.Scatter(x=t_auto, y=auto, name="Auto-corr"))
         
-            # Optionally add a vertical line at the peak
-            fig_cor.add_trace(go.Scatter(
-                x=[peak_time, peak_time],
-                y=[np.min(auto), np.max(auto)],
-                mode='lines',
-                name=f"Peak @ {peak_time:.2f} µs",
-                line=dict(dash='dash', color='red')
-            ))
-
-    fig_cor.update_layout(
-        title="Tx Auto Corr",
-        xaxis_title="Time (µs)",
-        yaxis_title="Magnitude",
-        height=300
-    )
-    st.plotly_chart(fig_cor, use_container_width=True)
+            fig_cor.update_layout(
+                title="Tx Auto Corr",
+                xaxis_title="Time (µs)",
+                yaxis_title="Magnitude",
+                height=300
+            )
+            st.plotly_chart(fig_cor, use_container_width=True)
 
     # Simulate
     t_rx, rx_raw, compressed_raw, freqs, df = simulate_multimode(config)
