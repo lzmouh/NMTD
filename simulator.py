@@ -126,6 +126,11 @@ def show_simulator():
     config["total_thickness"] = sum([l["thickness"] for l in config["layer_data"]])
     st.info(f"Total Pipe Thickness: **{config['total_thickness']:.2f}\"**")
 
+    # Auto-estimate safe max_time
+    D_total = sum([l["thickness"] for l in config["layers"]]) * 0.0254  # inches to meters
+    c_min = min([l["velocity"] for l in config["layers"]])
+    max_time_suggested = 2 * D_total / c_min  # Round-trip time
+    
     # --- DEFECT SETTINGS ---
     st.subheader("Defect Settings")
     if config["num_layers"] == 1:
@@ -182,6 +187,13 @@ def show_simulator():
             fig2.update_layout(title="Chirp (Freq)", xaxis_title="Frequency (MHz)", height=300)
             st.plotly_chart(fig2, use_container_width=True)
 
+    
+    
+    # Then in UI:
+    config["max_time"] = st.sidebar.number_input(
+        "Max Listening Time (µs)", 50.0, 1000.0, max_time_suggested * 1e6
+    ) * 1e-6
+    
     # --- SAVE / LOAD ---
     st.subheader("💾 Save / Load Configuration")
     c1, c2, c3 = st.columns(3)
