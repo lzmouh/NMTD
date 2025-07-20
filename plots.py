@@ -56,8 +56,7 @@ def show_plots():
             peak = t_auto[np.argmax(auto)]
             st.line_chart({
                 "Auto-corr": auto
-            }, use_container_width=True)
-            st.write(f"Auto-corr peak at **{peak:.2f} µs** (should ≈ sweep_us/2)")
+            }, use_container_width=True, height=300)
 
     # Simulate
     t_rx, rx_raw, compressed_raw, freqs, df = simulate_multimode(config)
