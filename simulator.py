@@ -128,7 +128,7 @@ def show_simulator():
 
     # Auto-estimate safe max_time
     D_total = config["total_thickness"] * 0.0254  # inches to meters
-    c_min = min([l["velocity"] for l in config["layer_data"]])
+    c_min = min([l["v"] for l in config["layer_data"]])
     max_time_suggested = 2 * D_total / c_min  # Round-trip time
     config["max_time"] = st.sidebar.number_input(
         "Max Listening Time (µs)", 50.0, 1000.0, max_time_suggested * 1e6
