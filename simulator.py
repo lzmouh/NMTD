@@ -130,9 +130,10 @@ def show_simulator():
     D_total = config["total_thickness"] * 0.0254  # inches to meters
     c_min = min([l["v"] for l in config["layer_data"]])
     max_time_suggested = 2 * D_total / c_min  # Round-trip time
+    default_us = max(50.0, max_time_suggested * 1e6)  # Ensure it's not < 50 µs
     config["max_time"] = st.sidebar.number_input(
-        "Max Listening Time (µs)", 50.0, 1000.0, max_time_suggested * 1e6
-    ) * 1e-6
+        "Max Listening Time (µs)", min_value=50.0, max_value=1000.0, value=default_us
+    ) * 1e-6  # Convert to seconds
     
     # --- DEFECT SETTINGS ---
     st.subheader("Defect Settings")
