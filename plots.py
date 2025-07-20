@@ -29,6 +29,35 @@ def show_plots():
     t_chirp = np.array(config["t_chirp"])
     tx = np.array(config["tx"])
     
+    # Chirp Plots
+    with st.expander("Transmitted Chirp Signal", expanded=False):
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            fig_tx = go.Figure()
+            fig_tx.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx, name="Tx Chirp"))
+            fig_tx.update_layout(title="Tx Chirp (Time)", xaxis_title="Time (µs)",
+                                 yaxis_title="Amplitude", height=300)
+            st.plotly_chart(fig_tx, use_container_width=True)
+
+        with col2:
+            fft_tx = np.fft.fft(tx)
+            freqs = np.fft.fftfreq(len(tx), d=1/fs)
+            mask = freqs > 0
+            fig_fft = go.Figure()
+            fig_fft.add_trace(go.Scatter(x=freqs[mask] / 1e6, y=np.abs(fft_tx[mask]), name="Spectrum"))
+            fig_fft.update_layout(title="Tx Spectrum", xaxis_title="Frequency (MHz)",
+                                  yaxis_title="Magnitude", height=300)
+            st.plotly_chart(fig_fft, use_container_width=True)
+
+        with col3:
+            auto = np.correlate(tx, tx, mode='full')
+            t_auto = (np.arange(len(auto)) - len(tx) + 1) / fs * 1e6
+            fig_cor = go.Figure()
+            fig_cor.add_trace(go.Scatter(x=t_auto, y=auto, name="Auto-corr"))
+            fig_cor.update_layout(title="Tx Auto Corr", xaxis_title="Time (µs)", yaxis_title="Magnitude", height=300)
+            st.plotly_chart(fig_cor, use_container_width=True)
+    
     # --- Run simulation ---
     t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(
         tx=np.array(config["tx"]),
