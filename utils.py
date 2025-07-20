@@ -27,93 +27,114 @@ def bandpass_filter(signal, fs, fmin, fmax, order=4):
     sos = butter(order, [fmin, fmax], btype='bandpass', fs=fs, output='sos')
     return sosfilt(sos, signal)
 
-def simulate_multimode(config):
-    # --- Extract fluid ---
-    fluid_name = config["fluid"]
-    if fluid_name == "Other":
-        rho_f = config["fluid_density"] * 1000      # g/cc → kg/m³
-        c_f = config["fluid_velocity"]              # m/s
-        z_f = rho_f * c_f                           # Rayl
-    else:
-        fluid = FLUID_DB[fluid_name]
-        z_f = fluid["Z"] * 1e6                      # MRayl → Rayl
-        rho_f = fluid["density"] * 1000             # g/cc → kg/m³
-        c_f = z_f / rho_f                           # m/s
+def simulate_multimode(
+    tx, fs,
+    fluid_velocity, Z_fluid,
+    layer_data,
+    defect_type=None,
+    defect_layer=None,
+    max_time=50e-6,
+    fluid_gap_m=0.00254  # 0.1 inch
+):
+    """
+    Simulate multimode ultrasonic A-scan through multilayer non-metallic pipe.
+    Returns: (t, rx_raw, echoes_df, rx_aligned, rx_compressed, rx_compressed_aligned)
+    """
+    # --- Setup Time Base ---
+    n_samples = int(max_time * fs)
+    t = np.arange(n_samples) / fs
+    rx = np.zeros(n_samples)
 
-    tx = np.array(config["tx"])
-    t_chirp = np.array(config["t_chirp"])
-    fs = config["sampling_rate"]
-    dt = 1 / fs
+    # --- Precompute Transducer Chirp Energy ---
+    tx_energy = np.sum(np.abs(tx)**2)
 
-    # --- Simulation domain ---
-    n_rx = int(2 * fs * config["max_time"])     # total length
-    rx = np.zeros(n_rx)
-    t_rx = np.arange(n_rx) * dt
+    # --- Flatten Layer Properties ---
+    thicknesses = np.array([layer["thickness"] for layer in layer_data]) * 0.0254  # in → m
+    velocities = np.array([layer["v"] for layer in layer_data])
+    Z_layers = np.array([layer["Z"] for layer in layer_data]) * 1e6  # MRayl → Rayl
+    alpha0s = np.array([layer["alpha0"] for layer in layer_data])
+    nexps = np.array([layer["n_exp"] for layer in layer_data])
+    n_layers = len(layer_data)
 
-    # --- Parameters ---
-    gap_thickness = 0.1 * 0.0254  # 0.1 inch in meters
-
-    # --- Accumulate TOF and signal ---
-    tof = 2 * gap_thickness / c_f
+    # --- Travel Path Setup ---
+    z_positions = np.cumsum(thicknesses)  # interface positions
     echoes = []
-    total_thickness = 0
 
-    for i, layer in enumerate(config["layer_data"]):
-        d = layer["thickness"] * 0.0254  # inches → meters
-        c = layer["v"]
-        #rho = layer["d"] * 1000
-        z = layer["Z"]
-        alpha0 = layer.get("alpha0", 0.0)
-        n_exp = layer.get("n_exp", 1.0)
+    # --- Initial fluid gap echo (interface at fluid → layer 1) ---
+    r0 = (Z_layers[0] - Z_fluid) / (Z_layers[0] + Z_fluid)
+    t0 = 2 * fluid_gap_m / fluid_velocity
+    a0 = r0
+    i0 = int(round(t0 * fs))
+    if 0 <= i0 < n_samples:
+        rx[i0] += a0
+        echoes.append({"time": t0, "amplitude": a0, "type": "fluid-gap", "layer": 0})
 
-        # Transmission and reflection at fluid-layer interface
-        R = (z - z_f) / (z + z_f)
-        T = 2 * z / (z + z_f)
+    # --- Down and up propagation through layers ---
+    for i in range(n_layers):
+        # Propagation to layer bottom
+        d = thicknesses[i]
+        v = velocities[i]
+        alpha0 = alpha0s[i]
+        n_exp = nexps[i]
 
-        # Frequency-dependent attenuation
-        f = np.fft.fftfreq(len(tx), d=dt)
-        f_abs = np.abs(f)
-        attenuation = np.exp(-alpha0 * (f_abs ** n_exp) * d)
+        # Estimate center frequency for attenuation (~mean of sweep)
+        f_center = (np.fft.fftfreq(len(tx), d=1/fs)[1:].mean())  # crude, improve if needed
+        alpha = alpha0 * (f_center / 1e6) ** n_exp  # Nepers/m
 
-        # Forward pulse through layer
-        tx_fft = np.fft.fft(tx)
-        tx_atten = np.fft.ifft(tx_fft * attenuation).real
+        # Accumulate round-trip time
+        t_rt = 2 * d / v
+        t_total = 2 * (fluid_gap_m + np.sum(thicknesses[:i+1]) ) / v
+        A_total = np.exp(-2 * alpha * d)  # two-way attenuation
 
-        # Round trip TOF to this layer's front interface
-        tof_layer = tof
-        sample_idx = int(round(tof_layer / dt))
+        # Reflection at next interface (if not last layer)
+        if i < n_layers - 1:
+            Z1, Z2 = Z_layers[i], Z_layers[i+1]
+            r = (Z2 - Z1) / (Z2 + Z1)
+            a = A_total * r
 
-        if sample_idx + len(tx_atten) < len(rx):
-            rx[sample_idx:sample_idx + len(tx_atten)] += T * tx_atten
+            t_echo = 2 * fluid_gap_m / fluid_velocity + 2 * np.sum(thicknesses[:i+1] / velocities[:i+1])
+            idx = int(round(t_echo * fs))
+            if 0 <= idx < n_samples:
+                rx[idx] += a
+                echoes.append({"time": t_echo, "amplitude": a, "type": "interface", "layer": i+1})
 
-        # Save metadata for this direct arrival
-        echoes.append({
-            "Layer": layer["name"],
-            "Mode": 1,
-            "Time (µs)": tof_layer * 1e6,
-            "Amp": np.max(np.abs(T * tx_atten)),
-            "Thickness (in)": d / 0.0254,
-            "Z (MRayl)": z / 1e6,
-            "α₀": alpha0,
-            "n_exp": n_exp,
-            "R": R,
-            "T": T,
-            "IsDirect": True
-        })
-    
-        # Update TOF for next layer
-        tof += 2 * d / c
-        z_f = z  # fluid becomes this layer (next reflection interface)
+        # Delamination
+        if defect_type == "Delamination" and defect_layer == i + 1:
+            # Insert a large reflection within the layer
+            a = 0.9  # strong echo
+            t_def = 2 * (fluid_gap_m + np.sum(thicknesses[:i]) + 0.5 * thicknesses[i]) / v
+            idx = int(round(t_def * fs))
+            if 0 <= idx < n_samples:
+                rx[idx] += a
+                echoes.append({"time": t_def, "amplitude": a, "type": "delamination", "layer": i+1})
 
-        total_thickness += d
+        # Crack (only reflects partway)
+        if defect_type == "Crack" and defect_layer == i + 1:
+            # Reflect ~halfway through the layer
+            a = 0.7  # moderate echo
+            t_def = 2 * (fluid_gap_m + np.sum(thicknesses[:i]) + 0.25 * thicknesses[i]) / v
+            idx = int(round(t_def * fs))
+            if 0 <= idx < n_samples:
+                rx[idx] += a
+                echoes.append({"time": t_def, "amplitude": a, "type": "crack", "layer": i+1})
 
-    # --- Optional final backwall reflection (total thickness) ---
-    # (not added for now; can be simulated later)
+    # --- Normalize RX signal to avoid clipping ---
+    rx = rx / (np.max(np.abs(rx)) + 1e-9)
 
-    # --- Pulse compression via matched filter ---
-    compressed = fftconvolve(rx, tx[::-1], mode='same')
+    # --- Alignment (group delay) ---
+    idx_peak = np.argmax(np.abs(tx))
+    tx_padded = np.zeros_like(rx)
+    tx_padded[:len(tx)] = tx
+    rx_aligned = np.roll(rx, -idx_peak)
 
-    # --- Create DataFrame of echoes ---
-    df = pd.DataFrame(echoes)
+    # --- Pulse Compression ---
+    matched_filter = tx[::-1]
+    rx_compressed = fftconvolve(rx, matched_filter, mode='same')
+    rx_compressed_aligned = fftconvolve(rx_aligned, matched_filter, mode='same')
+    rx_compressed /= np.max(np.abs(rx_compressed)) + 1e-9
+    rx_compressed_aligned /= np.max(np.abs(rx_compressed_aligned)) + 1e-9
 
-    return t_rx, rx, compressed, np.fft.fftfreq(len(rx), d=1/fs), df
+    # --- Echoes Table ---
+    echoes_df = pd.DataFrame(echoes)
+
+    return t, rx, echoes_df, rx_aligned, rx_compressed, rx_compressed_aligned
