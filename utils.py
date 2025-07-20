@@ -28,142 +28,127 @@ def bandpass_filter(signal, fs, fmin, fmax, order=4):
     return sosfilt(sos, signal)
 
 def simulate_multimode(config):
-    import numpy as np
-    import pandas as pd
-    from scipy.fft import fft, ifft, fftfreq
-    from scipy.signal import fftconvolve
-    from config import INCH_TO_METER, DEFAULT_GAP_INCH
-
-    # --- Unpack configuration ---
+    """
+    Simulate multi-mode ultrasonic propagation through layered pipe.
+    Returns:
+        t_rx: time array for received signal
+        rx_signal: raw received signal with all modes
+        compressed: pulse-compressed signal
+        freqs: frequency array
+        df: echo metadata dataframe with direct arrival flag
+    """
     fs = config["sampling_rate"]
     t_chirp = np.array(config["t_chirp"])
     tx = np.array(config["tx"])
-    fluid_vel = config["fluid_velocity"]
-    defect_type = config["defect_type"]
-    defect_idx = config["defect_layer"] - 1
-    layers = config["layer_data"]
-    f_start_mhz = config["f_start_mhz"]
-    f_end_mhz = config["f_end_mhz"]
+    layers = config["pipe_layers"]
+    fluid = config["fluid"]
+    gap_thickness = 0.1 * 0.0254  # 0.1 inch in meters
 
-    # --- Interface depths (in meters) ---
-    gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
-    depths = [gap_m]  # initial fluid gap
-    for layer in layers:
-        depths.append(depths[-1] + layer["thickness"] * INCH_TO_METER)
+    c_f = fluid["velocity"]
+    rho_f = fluid["density"]
+    z_f = c_f * rho_f
 
-    # --- Reflection and transmission coefficients ---
-    R_list, T_list = [], []
-    Z_prev = config["Z_fluid"]
-    for layer in layers:
-        Z_curr = layer["Z"]
-        R = (Z_curr - Z_prev) / (Z_curr + Z_prev)
-        T = 1 - R**2
-        R_list.append(R)
-        T_list.append(T)
-        Z_prev = Z_curr
-
-    # --- Propagation modes: fluid + all layers ---
-    modes = [(fluid_vel, 0.0, 0.0)] + [(l["v"], l["alpha0"], l["n_exp"]) for l in layers]
-
-    # --- Max delay and time axis ---
-    max_depth = depths[-1]
-    min_velocity = min([v for v, _, _ in modes])
-    max_delay = 2 * max_depth / min_velocity
-    buffer_s = 10e-6
-    n_rx = int(fs * (max_delay + buffer_s + len(tx)/fs))
+    t_total = 400e-6  # 400 µs
+    n_rx = int(t_total * fs)
     t_rx = np.arange(n_rx) / fs
-    rx = np.zeros(n_rx)
+    rx_signal = np.zeros(n_rx)
 
-    # --- FFT of transmitted chirp ---
-    freqs = fftfreq(len(tx), d=1/fs)
-    P_tx = fft(tx)
+    freqs = np.fft.fftfreq(len(tx), d=1/fs)
+    freqs_hz = freqs[freqs >= 0]
+    
+    echo_table = []
+    interface_times = []
+    distance = gap_thickness
 
-    # --- Group delay center for echo alignment ---
-    group_delay_s = len(tx) / 2 / fs
+    v_prev = c_f
+    z_prev = z_f
+    layer_names = ["Fluid"]
 
-    # --- Echo metadata ---
-    records = []
+    for i, layer in enumerate(layers):
+        v = layer["velocity"]
+        rho = layer["density"]
+        alpha0 = layer["alpha0"]
+        n_exp = layer["n_exp"]
+        z = v * rho
+        d = layer["thickness"] * 0.0254  # inches to meters
 
-    # --- Loop over all modes and interfaces ---
-    for m_idx, (v, alpha0, n_exp) in enumerate(modes):
-        beta = 0.05  # weak dispersion
+        # Reflection and transmission at this interface
+        R = (z - z_prev) / (z + z_prev)
+        T = 2 * z / (z + z_prev)
 
-        for i, depth in enumerate(depths):
-            tau_s = 2 * depth / v  # round-trip travel time
+        # Time of flight (one-way)
+        TT = distance / v
+        TT_us = TT * 1e6
 
-            # Frequency-dependent attenuation (in dB/m)
-            alpha_f = alpha0 * (np.abs(freqs)/1e6)**n_exp * 100  # dB/m
-            H = 10 ** (-alpha_f * depth / 20)
+        # Attenuation (frequency dependent)
+        alpha_f = alpha0 * (freqs_hz / 1e6) ** n_exp  # Np/m
+        att_linear = np.exp(-2 * alpha_f * d)
 
-            # Dispersion (β model)
-            c_f = v * (1 + beta * (np.abs(freqs)/1e6)**0.5)
-            phase_shift = -2 * np.pi * freqs * (2 * depth / c_f)
-            D = np.exp(1j * phase_shift)
+        # Delay samples
+        t_delay = 2 * distance / v  # round-trip
+        idx_delay = int(np.round(t_delay * fs))
 
-            # Total frequency-domain response
-            P_mod = P_tx * H * D
-            echo = np.real(ifft(P_mod))
+        if idx_delay < len(rx_signal):
+            # Attenuate signal in frequency domain
+            TX = np.fft.fft(tx, n=len(rx_signal))
+            ATT = np.ones_like(TX)
+            ATT[:len(alpha_f)] = att_linear
+            RX = TX * ATT
+            rx_att = np.fft.ifft(RX).real
 
-            # Reflection and transmission
-            if i == 0:
-                R = -1.0
-                T = 1.0
-            else:
-                R = R_list[i - 1]
-                T = T_list[i - 1]
+            # Insert echo
+            rx_signal[idx_delay:idx_delay+len(tx)] += R * rx_att[:len(rx_signal)-idx_delay]
 
-            # Defect modeling
-            if defect_type == "Delamination" and (i - 1) == defect_idx:
-                R *= 0.7
-                T *= 0.7
-            elif defect_type == "Crack" and (i - 1) == defect_idx:
-                R *= 0.5
-                T *= 0.5
-
-            amp = abs(R)
-
-            # Echo alignment
-            idx_center = int(round((tau_s - group_delay_s) * fs))
-            half_len = len(echo) // 2
-            start = idx_center - half_len
-            end = start + len(echo)
-
-            # Clip to buffer range
-            if start >= 0 and end <= len(rx):
-                rx[start:end] += amp * echo
-
-            # Layer metadata
-            if i == 0:
-                layer_name = "Fluid Gap"
-                thick = DEFAULT_GAP_INCH
-                Z = config["Z_fluid"]
-                a0 = 0.0
-                n = 0.0
-            else:
-                layer = layers[i - 1]
-                layer_name = layer["name"]
-                thick = layer["thickness"]
-                Z = layer["Z"]
-                a0 = layer["alpha0"]
-                n = layer["n_exp"]
-
-            # Record metadata
-            records.append({
-                "Mode": m_idx + 1,
-                "Layer": layer_name,
-                "Thickness (in)": round(thick, 3),
-                "Z (MRayl)": round(Z, 3),
-                "α0": round(a0, 3),
-                "n exp": round(n, 3),
-                "R": round(R, 3),
-                "T": round(T, 3),
-                "Time (µs)": round(tau_s * 1e6, 2),
-                "Amp": round(amp, 3)
+            # Store metadata
+            echo_table.append({
+                "Layer": layer["name"],
+                "Interface": f"{layer_names[-1]}–{layer['name']}",
+                "Time (µs)": t_delay * 1e6,
+                "Amp": R,
+                "Z (MRayl)": z / 1e6,
+                "Thickness (in)": layer["thickness"],
+                "α₀": alpha0,
+                "n_exp": n_exp,
+                "Mode": i + 1,
+                "IsDirect": True,
+                "TT (µs)": t_delay * 1e6,
+                "Calc Thickness (in)": (v * t_delay / 2) * 39.3701,
             })
 
-    # --- Matched filter (pulse compression) ---
-    compressed = fftconvolve(rx, tx[::-1], mode='same')
+        # Prep for next
+        distance += d
+        z_prev = z
+        v_prev = v
+        layer_names.append(layer["name"])
 
-    # --- Return outputs ---
-    df = pd.DataFrame.from_records(records)
-    return t_rx, rx, compressed, freqs, df
+    # Last reflection (backwall or fluid behind)
+    z_back = config["backing"]["velocity"] * config["backing"]["density"]
+    R_back = (z_back - z_prev) / (z_back + z_prev)
+    t_delay = 2 * distance / v_prev
+    idx_delay = int(np.round(t_delay * fs))
+
+    if idx_delay < len(rx_signal):
+        RX = np.fft.fft(tx, n=len(rx_signal))
+        rx_back = np.fft.ifft(RX).real
+        rx_signal[idx_delay:idx_delay+len(tx)] += R_back * rx_back[:len(rx_signal)-idx_delay]
+
+        echo_table.append({
+            "Layer": "Backing",
+            "Interface": f"{layer_names[-1]}–Backing",
+            "Time (µs)": t_delay * 1e6,
+            "Amp": R_back,
+            "Z (MRayl)": z_back / 1e6,
+            "Thickness (in)": 0.0,
+            "α₀": 0,
+            "n_exp": 0,
+            "Mode": len(layers) + 1,
+            "IsDirect": True,
+            "TT (µs)": t_delay * 1e6,
+            "Calc Thickness (in)": (v_prev * t_delay / 2) * 39.3701,
+        })
+
+    # Pulse compression (matched filter)
+    compressed = fftconvolve(rx_signal, tx[::-1], mode='same')
+
+    df = pd.DataFrame(echo_table)
+    return t_rx, rx_signal, compressed, freqs_hz, df
