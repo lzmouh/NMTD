@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from utils import simulate_multimode
 
-def show_plots():
+def show_plots(config):
     # --- INIT SESSION STATE ---
     if "config_loaded" not in st.session_state:
         st.session_state["config_loaded"] = False
