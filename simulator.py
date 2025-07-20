@@ -4,7 +4,7 @@ import numpy as np
 import json
 import plotly.graph_objects as go
 from config import (
-    DEFAULT_CONFIG, FLUID_DB, default_densities,
+    DEFAULT_CONFIG, FLUID_DB,
     PIPE_DB, LAYER_DB, INCH_TO_METER
 )
 from utils import generate_tx_chirp
