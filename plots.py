@@ -29,7 +29,7 @@ def show_plots():
 
     # Chirp Plots
     with st.expander("Transmitted Chirp Signal", expanded=False):
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         # Time domain
         with col1:
@@ -49,6 +49,15 @@ def show_plots():
             fig_fft.update_layout(title="Tx Spectrum", xaxis_title="Frequency (MHz)",
                                   yaxis_title="Magnitude", height=300)
             st.plotly_chart(fig_fft, use_container_width=True)
+        # Tx chirp auto-correlation
+        with col3:
+            auto = np.correlate(tx, tx, mode='full')
+            t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
+            peak = t_auto[np.argmax(auto)]
+            st.line_chart({
+                "Auto-corr": auto
+            }, use_container_width=True)
+            st.write(f"Auto-corr peak at **{peak:.2f} µs** (should ≈ sweep_us/2)")
 
     # Simulate
     t_rx, rx_raw, compressed_raw, freqs, df = simulate_multimode(config)
@@ -62,16 +71,6 @@ def show_plots():
     # 1) Compute and display group delay
     gd = calculate_group_delay(tx, fs)
     st.info(f"🔧 Computed group delay: **{gd*1e6:.2f} µs**")
-
-    # Optional: show the chirp auto-correlation to verify delay
-    auto = np.correlate(tx, tx, mode='full')
-    t_auto = (np.arange(len(auto)) - len(tx)+1) / fs * 1e6
-    peak = t_auto[np.argmax(auto)]
-    with st.expander("🔍 Chirp Auto-correlation Debug", expanded=False):
-        st.line_chart({
-            "Auto-corr": auto
-        }, use_container_width=True)
-        st.write(f"Auto-corr peak at **{peak:.2f} µs** (should ≈ sweep_us/2)")
 
     # 2) Roll by exactly that group delay
     shift = int(round(gd * fs))
