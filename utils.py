@@ -61,7 +61,7 @@ def simulate_multimode(config):
     for i, layer in enumerate(config["layer_data"]):
         d = layer["thickness"] * 0.0254  # inches → meters
         c = layer["v"]
-        rho = layer["density"] * 1000
+        rho = layer["d"] * 1000
         z = c * rho
         alpha0 = layer.get("alpha0", 0.0)
         n_exp = layer.get("n_exp", 1.0)
