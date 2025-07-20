@@ -6,6 +6,15 @@ import plotly.graph_objects as go
 from utils import simulate_multimode
 
 def show_plots():
+    # --- INIT SESSION STATE ---
+    if "config_loaded" not in st.session_state:
+        st.session_state["config_loaded"] = False
+
+    if "config" not in st.session_state or not st.session_state["config_loaded"]:
+        st.session_state["config"] = DEFAULT_CONFIG.copy()
+
+    config = st.session_state["config"]
+    
     # --- Run simulation ---
     t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(
         tx=np.array(config["tx"]),
