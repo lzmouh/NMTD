@@ -154,5 +154,4 @@ def simulate_multimode(config):
 
     # --- Return time vector, raw, compressed, spectrum freqs, and mode 1 dataframe ---
     df = pd.DataFrame.from_records(records)
-
     return t_rx, rx, compressed, freqs, df
