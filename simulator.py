@@ -27,13 +27,22 @@ def show_simulator():
     fluid_names = list(FLUID_DB.keys())
     config["fluid"] = st.sidebar.selectbox("Borehole Fluid", fluid_names, index=0)
     
-    if config["fluid"] == "Other":
+    fluid_name = config["fluid"]
+    if fluid_name == "Other":
         config["fluid_density"] = st.sidebar.number_input("Fluid Density (g/cc)", 0.5, 2.5, 1.0)
         config["Z_fluid"] = st.sidebar.number_input("Z_fluid (MRayl)", 1.0, 3.0, 1.5)
+        rho = config["fluid_density"] * 1000
+        Z = config["Z_fluid"] * 1e6
+        config["fluid_velocity"] = Z / rho
+        config["fluid"] = {
+            "name": "Custom",
+            "density": rho,
+            "velocity": config["fluid_velocity"],
+            "Z": Z,
+        }
     else:
-        fluid_data = FLUID_DB[config["fluid"]]
-        config["fluid_density"] = fluid_data["density"]
-        config["Z_fluid"] = fluid_data["Z"]
+        fluid_data = FLUID_DB[fluid_name]
+        config["fluid"] = fluid_data
     
     # Compute fluid velocity
     rho = config["fluid_density"] * 1000     # g/cc → kg/m³
