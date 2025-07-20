@@ -5,22 +5,44 @@ INCH_TO_METER    = 0.0254
 DEFAULT_GAP_INCH = 0.1
 DEFAULT_VELOCITY = 2000
 
-# ----- Fluid database -----
-fluid_impedance_db = {
-    "Water":                 1.48,
-    "Oil":                   1.20,
-    "Water-based Mud (WBM)":1.60,
-    "Oil-based Mud (OBM)":   1.30,
-    "Diesel":                1.25,
-    "Other":                 None
-}
-
-default_densities = {
-    "Water":                 1.0,
-    "Oil":                   0.85,
-    "Water-based Mud (WBM)":1.2,
-    "Oil-based Mud (OBM)":   1.1,
-    "Diesel":                0.82
+# ----- Fluid property database -----
+FLUID_DB = {
+    "Water": {
+        "name": "Water",
+        "velocity": 1480,
+        "density": 1.0,
+        "Z": 1.48
+    },
+    "Oil": {
+        "name": "Oil",
+        "velocity": 1400,
+        "density": 0.85,
+        "Z": 1.20
+    },
+    "Water-based Mud (WBM)": {
+        "name": "Water-based Mud (WBM)",
+        "velocity": 1450,
+        "density": 1.2,
+        "Z": 1.60
+    },
+    "Oil-based Mud (OBM)": {
+        "name": "Oil-based Mud (OBM)",
+        "velocity": 1420,
+        "density": 1.1,
+        "Z": 1.30
+    },
+    "Diesel": {
+        "name": "Diesel",
+        "velocity": 1390,
+        "density": 0.82,
+        "Z": 1.25
+    },
+    "Other": {
+        "name": "Other",
+        "velocity": 1450,
+        "density": 1.0,
+        "Z": 1.45
+    }
 }
 
 # ----- Commercial pipes database -----
