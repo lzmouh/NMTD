@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from utils import simulate_multimode
 
-def show_plots(config):
+def show_plots():
     # --- Run simulation ---
     t, rx, df, rx_aligned, rx_compressed, rx_compressed_aligned = simulate_multimode(
         tx=np.array(config["tx"]),
