@@ -58,7 +58,7 @@ def simulate_multimode(config):
     echoes = []
     total_thickness = 0
 
-    for i, layer in enumerate(config["layers"]):
+    for i, layer in enumerate(config["layer_data"]):
         d = layer["thickness"] * 0.0254  # inches → meters
         c = layer["velocity"]
         rho = layer["density"] * 1000
