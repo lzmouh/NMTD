@@ -1,8 +1,61 @@
 import numpy as np
 import pandas as pd
-from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
+from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows, filtfilt, hilbert
 from scipy.fft import fft, ifft, fftfreq
 from config import FLUID_DB, INCH_TO_METER, DEFAULT_GAP_INCH
+
+def calculate_group_delay(tx, fs):
+    """
+    Estimate group delay from autocorrelation peak of transmit signal.
+    
+    Parameters:
+        tx (np.ndarray): Transmit chirp signal
+        fs (float): Sampling rate in Hz
+
+    Returns:
+        float: Group delay in seconds
+    """
+    corr = np.correlate(tx, tx, mode='full')
+    peak_index = np.argmax(corr)
+    delay_samples = peak_index - len(tx) + 1
+    return delay_samples / fs
+
+def bandpass_filter(signal, fs, fmin, fmax, order=4):
+    """
+    Apply zero-phase Butterworth bandpass filter to a signal.
+    
+    Parameters:
+        signal (np.ndarray): Input signal
+        fs (float): Sampling rate in Hz
+        fmin (float): Minimum frequency in Hz
+        fmax (float): Maximum frequency in Hz
+        order (int): Filter order
+
+    Returns:
+        np.ndarray: Filtered signal
+    """
+    nyq = 0.5 * fs
+    low = fmin / nyq
+    high = fmax / nyq
+    if low >= 1 or high >= 1:
+        raise ValueError("Filter frequencies must be below Nyquist.")
+    b, a = butter(order, [low, high], btype='band')
+    return filtfilt(b, a, signal)
+
+def matched_filter_compress(rx, tx):
+    """
+    Perform pulse compression using matched filtering.
+
+    Parameters:
+        rx (np.ndarray): Received signal
+        tx (np.ndarray): Transmitted chirp signal (template)
+
+    Returns:
+        np.ndarray: Pulse-compressed signal
+    """
+    tx_matched = tx[::-1]  # Time-reverse the chirp for matched filtering
+    compressed = np.convolve(rx, tx_matched, mode='same')
+    return compressed
 
 def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
     """
