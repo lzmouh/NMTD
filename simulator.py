@@ -1,32 +1,29 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 import numpy as np
-import json
 import plotly.graph_objects as go
+import json
+
 from config import (
-    DEFAULT_CONFIG, FLUID_DB,
-    PIPE_DB, LAYER_DB, INCH_TO_METER
+    DEFAULT_CONFIG, FLUID_DB, PIPE_DB, LAYER_DB, INCH_TO_METER
 )
-from utils import generate_tx_chirp
+from utils import generate_tx_chirp, simulate_multilayer_propagation
 
 def show_simulator():
-    # --- INIT SESSION STATE ---
+    # --- SESSION INIT ---
     if "config_loaded" not in st.session_state:
         st.session_state["config_loaded"] = False
-
     if "config" not in st.session_state or not st.session_state["config_loaded"]:
         st.session_state["config"] = DEFAULT_CONFIG.copy()
 
     config = st.session_state["config"]
-    
-    # --- SIDEBAR LAYOUT ---
-    #st.sidebar.image("logo.png", use_container_width=True)
+
+    # --- SIDEBAR SETUP ---
     st.sidebar.title("Simulation Setup")
 
-    # FLUID SELECTION
     fluid_names = list(FLUID_DB.keys())
     config["fluid"] = st.sidebar.selectbox("Borehole Fluid", fluid_names, index=0)
-    
+
     fluid_name = config["fluid"]
     if fluid_name == "Other":
         config["fluid_density"] = st.sidebar.number_input("Fluid Density (g/cc)", 0.5, 2.5, 1.0)
@@ -43,33 +40,30 @@ def show_simulator():
     else:
         fluid_data = FLUID_DB[fluid_name]
         config["fluid"] = fluid_data
-    
-    # Compute fluid velocity
-    rho = config["fluid_density"] * 1000     # g/cc → kg/m³
-    Z = config["Z_fluid"] * 1e6              # MRayl → Rayl
-    config["fluid_velocity"] = Z / rho       # m/s
+        config["fluid_density"] = fluid_data["density"] / 1000  # kg/m³ → g/cc
+        config["Z_fluid"] = fluid_data["Z"] / 1e6
+        config["fluid_velocity"] = fluid_data["velocity"]
 
-    # PIPE TYPE TOGGLE
     pipe_type = st.sidebar.radio("Pipe Configuration", ["Commercial Pipe", "Custom Pipe"], index=0)
     config["pipe_type"] = pipe_type
 
-    # MAIN PAGE HEADER
-    st.title("Non-metalic Tubualrs Defectoscope NMTD")
+    # --- PAGE HEADER ---
+    st.title("Non-Metallic Tubulars Defectoscope (NMTD)")
     st.subheader("Ultrasonic Simulation App")
-    #st.markdown("Configure your test pipe and simulation parameters.")
 
-    # DISPLAY FLUID BOXES
-    df = pd.DataFrame([{
-        "Fluid": config["fluid"],
+    # --- FLUID PROPERTIES TABLE ---
+    st.markdown("### Fluid Properties")
+    fluid_df = pd.DataFrame([{
+        "Fluid": fluid_name,
         "Density (g/cc)": f"{config['fluid_density']:.2f}",
         "Z_fluid (MRayl)": f"{config['Z_fluid']:.2f}",
         "Velocity (m/s)": f"{config['fluid_velocity']:.0f}"
     }])
-    st.dataframe(df, use_container_width=True, hide_index=True)
-    
+    st.dataframe(fluid_df, use_container_width=True, hide_index=True)
+
     # --- COMMERCIAL PIPE CONFIG ---
     if pipe_type == "Commercial Pipe":
-        col1, col2, col3 = st.columns([1,3,1])
+        col1, col2, col3 = st.columns([1, 3, 1])
         with col2:
             pipe_name = st.selectbox("Select Pipe", list(PIPE_DB.keys()))
             pipe = PIPE_DB[pipe_name]
@@ -77,12 +71,10 @@ def show_simulator():
             config["num_layers"] = len(pipe["layers"])
             config["total_thickness"] = pipe["total_thickness"]
             st.markdown(f"**{pipe['description']}**")
-            
         st.markdown("### Layer Structure")
-        df = [{**l} for l in config["layer_data"]]
-        st.dataframe(df, use_container_width=True)
-    
-   # --- CUSTOM PIPE ---
+        st.dataframe(config["layer_data"], use_container_width=True)
+
+    # --- CUSTOM PIPE CONFIG ---
     elif pipe_type == "Custom Pipe":
         st.sidebar.markdown("---")
         config["num_layers"] = st.sidebar.slider("Number of Layers", 1, 10, config.get("num_layers", 3))
@@ -98,15 +90,9 @@ def show_simulator():
                 mat_keys = list(LAYER_DB.keys())
                 mat_value = layer.get("material", "New")
                 index = 0 if mat_value == "Custom" or mat_value not in mat_keys else mat_keys.index(mat_value) + 1
-                mat_name = st.selectbox(
-                    f"Material {i+1}", ["New"] + mat_keys,
-                    index=index,
-                    key=f"mat_{i}"
-                )
-                            
+                mat_name = st.selectbox(f"Material {i+1}", ["New"] + mat_keys, index=index, key=f"mat_{i}")
             if mat_name != "New":
                 props = LAYER_DB[mat_name]
-                editable = True
                 row = {
                     "name": mat_name,
                     "material": mat_name,
@@ -128,41 +114,25 @@ def show_simulator():
             row["material"] = mat_name if mat_name != "New" else "Custom"
             config["layer_data"][i] = row
 
-        config["total_thickness"] = sum(layer["thickness"] for layer in config["layer_data"])
-
-
-    # --- TOTAL THICKNESS ---
-    config["total_thickness"] = sum([l["thickness"] for l in config["layer_data"]])
+    config["total_thickness"] = sum(layer["thickness"] for layer in config["layer_data"])
     st.info(f"Total Pipe Thickness: **{config['total_thickness']:.2f}\"**")
 
-    # Auto-estimate safe max_time
-    D_total = config["total_thickness"] * 0.0254  # inches to meters
+    # --- MAX LISTENING TIME ---
+    D_total = config["total_thickness"] * INCH_TO_METER
     c_min = min([l["v"] for l in config["layer_data"]])
-    max_time_suggested = 2 * D_total / c_min  # Round-trip time
-    default_us = max(50.0, max_time_suggested * 1e6)  # Ensure it's not < 50 µs
-    config["max_time"] = st.sidebar.number_input(
-        "Max Listening Time (µs)", min_value=50.0, max_value=1000.0, value=default_us
-    ) * 1e-6  # Convert to seconds
-    
+    max_time_suggested = 2 * D_total / c_min
+    default_us = max(50.0, max_time_suggested * 1e6)
+    config["max_time"] = st.sidebar.number_input("Max Listening Time (µs)", 50.0, 1000.0, default_us) * 1e-6
+
     # --- DEFECT SETTINGS ---
     st.subheader("Defect Settings")
     if config["num_layers"] == 1:
-        col1, col2 = st.columns(2)
-        with col1:
-            config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
-        with col2:
-            config["defect_layer"] = 1
-            st.markdown(
-                "<p style='font-size:14px;'>Defect Layer Index</p>",
-                unsafe_allow_html=True
-            )
-            st.markdown("ℹ️ Only 1 layer: delamination not possible.")
+        config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
+        config["defect_layer"] = 1
+        st.markdown("ℹ️ Only 1 layer: delamination not possible.")
     else:
-        col1, col2 = st.columns(2)
-        with col1:
-            config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
-        with col2:
-            config["defect_layer"] = st.slider("Defect Layer Index", 1, config["num_layers"], config.get("defect_layer", 1))
+        config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
+        config["defect_layer"] = st.slider("Defect Layer Index", 1, config["num_layers"], config.get("defect_layer", 1))
 
     # --- CHIRP SETTINGS ---
     st.subheader("Chirp Settings")
@@ -170,9 +140,9 @@ def show_simulator():
     config["f_start_mhz"] = c1.number_input("Start Freq (MHz)", 0.1, 10.0, config.get("f_start_mhz", 0.5))
     config["f_end_mhz"] = c2.number_input("End Freq (MHz)", 0.1, 10.0, config.get("f_end_mhz", 5.0))
     config["sweep_us"] = c3.number_input("Duration (µs)", 10.0, 200.0, config.get("sweep_us", 50.0))
-    config["sampling_rate"] = 100e6  # fixed 100 MHz
+    config["sampling_rate"] = 100e6  # fixed
 
-    # --- GENERATE CHIRP ---
+    # --- CHIRP GENERATION ---
     t_chirp, tx = generate_tx_chirp(
         fs=config["sampling_rate"],
         sweep_us=config["sweep_us"],
@@ -181,10 +151,8 @@ def show_simulator():
     )
     config["t_chirp"] = t_chirp.tolist()
     config["tx"] = tx.tolist()
-    st.session_state["config"] = config
-    st.session_state["config_loaded"] = True
 
-    # --- CHIRP PLOTS ---
+    # --- CHIRP PREVIEW ---
     with st.expander("Transmitted Chirp Preview", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
@@ -194,14 +162,50 @@ def show_simulator():
             st.plotly_chart(fig1, use_container_width=True)
         with c2:
             TX_FFT = np.fft.fft(tx)
-            freqs = np.fft.fftfreq(len(tx), d=1/config["sampling_rate"])
+            freqs = np.fft.fftfreq(len(tx), d=1 / config["sampling_rate"])
             fig2 = go.Figure()
             fig2.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(TX_FFT[freqs > 0]), name="Spectrum"))
             fig2.update_layout(title="Chirp (Freq)", xaxis_title="Frequency (MHz)", height=300)
             st.plotly_chart(fig2, use_container_width=True)
 
-    
-    # --- SAVE / LOAD ---
+    # --- SIMULATE MULTILAYER RESPONSE ---
+    st.subheader("📡 Simulated Ultrasonic Response")
+    layers = [{
+        "thickness": l["thickness"] * INCH_TO_METER,
+        "c": l["v"],
+        "rho": l["Z"] / l["v"],
+        "alpha0": l["alpha0"],
+        "n": l["n_exp"],
+        "beta": l.get("beta", 0.0),
+    } for l in config["layer_data"]]
+
+    fluid_props = {
+        "c": config["fluid_velocity"],
+        "rho": config["fluid_density"] * 1000
+    }
+
+    received_signal, time_axis, echo_metadata = simulate_multilayer_propagation(
+        chirp_signal=np.array(tx),
+        chirp_t=np.array(t_chirp),
+        fluid_props=fluid_props,
+        layers=layers,
+        gap_thickness=2.54e-3,
+        fs=config["sampling_rate"]
+    )
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=time_axis * 1e6, y=received_signal, name="Received Signal"))
+    for echo in echo_metadata:
+        fig.add_vline(x=echo["time"] * 1e6, line=dict(color="red", dash="dot"),
+                      annotation_text=echo["interface"], annotation_position="top right")
+    fig.update_layout(title="Simulated A-scan", xaxis_title="Time (µs)", height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # --- METADATA TABLE ---
+    st.subheader("🧾 Echo Metadata")
+    st.dataframe(pd.DataFrame(echo_metadata), use_container_width=True)
+
+    # --- SAVE / LOAD CONFIG ---
     st.subheader("💾 Save / Load Configuration")
     c1, c2, c3 = st.columns(3)
     with c1:
