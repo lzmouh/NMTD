@@ -40,7 +40,7 @@ def show_simulator():
     else:
         fluid_data = FLUID_DB[fluid_name]
         config["fluid"] = fluid_data
-        config["fluid_density"] = fluid_data["density"] / 1000  # kg/m³ → g/cc
+        config["fluid_density"] = fluid_data["density"]  #g/cc
         config["Z_fluid"] = fluid_data["Z"] / 1e6
         config["fluid_velocity"] = fluid_data["velocity"]
 
