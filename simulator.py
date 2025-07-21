@@ -126,14 +126,19 @@ def show_simulator():
 
     # --- DEFECT SETTINGS ---
     st.subheader("Defect Settings")
-    if config["num_layers"] == 1:
-        config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
-        config["defect_layer"] = 1
-        st.markdown("ℹ️ Only 1 layer: delamination not possible.")
-    else:
-        config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
-        config["defect_layer"] = st.slider("Defect Layer Index", 1, config["num_layers"], config.get("defect_layer", 1))
-
+    c1, c2 = st.columns(2)
+    with c1:
+        if config["num_layers"] == 1:
+            config["defect_type"] = st.selectbox("Defect Type", ["None", "Crack"])
+        else:
+            config["defect_type"] = st.selectbox("Defect Type", ["None", "Delamination", "Crack"])
+    with c2:
+        if config["num_layers"] == 1:
+            config["defect_layer"] = 1
+            st.markdown("ℹ️ Only 1 layer: delamination not possible.")
+        else:
+            config["defect_layer"] = st.slider("Defect Layer Index", 1, config["num_layers"], config.get("defect_layer", 1))
+    
     # --- CHIRP SETTINGS ---
     st.subheader("Chirp Settings")
     c1, c2, c3 = st.columns(3)
