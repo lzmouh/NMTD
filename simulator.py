@@ -173,7 +173,7 @@ def show_simulator():
             st.plotly_chart(fig2, use_container_width=True)
 
     # --- Save to session ---
-    st.session_state["config"] = config
+    st.session_state["config"] = config  # Your full simulation config
     st.session_state["config_loaded"] = True
     
     # --- SAVE / LOAD CONFIG ---
