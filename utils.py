@@ -267,7 +267,7 @@ def simulate_multilayer_propagation(
 
     # Fluid properties
     c_fluid = fluid_props['c']                   # m/s
-    Z_prev = fluid_props['Z_fluid'] * 1e6  # MRayl → Rayl
+    Z_prev = fluid_props['Z'] * 1e6  # MRayl → Rayl
     t_total = travel_time(gap_thickness, c_fluid)
 
     # Estimate group delay
