@@ -126,7 +126,7 @@ def show_plots():
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
     
-        for echo in echo_metadata:
+        for echo in metadata:
             t_echo_us = echo['time'] * 1e6
             fig2.add_vline(
                 x=t_echo_us,
@@ -151,7 +151,7 @@ def show_plots():
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
     
-        for echo in echo_metadata:
+        for echo in metadata:
             t_echo_us = echo['time'] * 1e6
             fig4.add_vline(
                 x=t_echo_us,
