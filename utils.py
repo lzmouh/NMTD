@@ -363,7 +363,7 @@ def simulate_multilayer_propagation(
             ))
 
         # Transmitted signal continues
-        t_total += t_layer
+        t_total += travel_time(thickness, c) #t_layer
         signal_in = filtered * T
         Z_prev = Z_layer
 
