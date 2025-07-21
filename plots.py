@@ -109,61 +109,84 @@ def show_plots():
     if align:
         rx_compressed_aligned = np.roll(rx_compressed, -shift_samples)
 
-    t_us = t * 1e6
-
     st.subheader("📈 Ultrasonic Signal Outputs")
     col1, col2 = st.columns(2)
 
     # Plot 1: Raw Received
+    # Filter for interface echoes only
+    interface_echoes = [e for e in metadata if "Entry" in e["interface"] or e["interface"] == "Back Wall"]
+    
+    # Convert time to microseconds
+    t_us = t * 1e6
+    
     with col1:
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(x=t_us, y=rx, name="Raw"))
+        for echo in interface_echoes:
+            fig1.add_vline(x=echo["time"] * 1e6, line_dash="dot", line_color="red")
+            fig1.add_annotation(
+                x=echo["time"] * 1e6,
+                y=max(rx),
+                text=echo["interface"],
+                showarrow=True,
+                arrowhead=2,
+                yshift=10,
+                font=dict(size=10)
+            )
         fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig1, use_container_width=True)
     
-    # Plot 2: Aligned Signal with annotations
     with col2:
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
-    
-        for echo in metadata:
-            t_echo_us = echo['time'] * 1e6
-            fig2.add_vline(
-                x=t_echo_us,
-                line=dict(color="red", width=1, dash="dash"),
-                annotation_text=echo["interface"],
-                annotation_position="top left",
-                annotation_font_size=10
+        for echo in interface_echoes:
+            fig2.add_vline(x=echo["time"] * 1e6, line_dash="dot", line_color="red")
+            fig2.add_annotation(
+                x=echo["time"] * 1e6,
+                y=max(rx_aligned),
+                text=echo["interface"],
+                showarrow=True,
+                arrowhead=2,
+                yshift=10,
+                font=dict(size=10)
             )
-    
         fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
     
-    # Plot 3: Pulse Compressed (unannotated)
     with col1:
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
+        for echo in interface_echoes:
+            fig3.add_vline(x=echo["time"] * 1e6, line_dash="dot", line_color="red")
+            fig3.add_annotation(
+                x=echo["time"] * 1e6,
+                y=max(rx_compressed),
+                text=echo["interface"],
+                showarrow=True,
+                arrowhead=2,
+                yshift=10,
+                font=dict(size=10)
+            )
         fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig3, use_container_width=True)
     
-    # Plot 4: Aligned Compressed with annotations
     with col2:
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
-    
-        for echo in metadata:
-            t_echo_us = echo['time'] * 1e6
-            fig4.add_vline(
-                x=t_echo_us,
-                line=dict(color="green", width=1, dash="dot"),
-                annotation_text=echo["interface"],
-                annotation_position="top left",
-                annotation_font_size=10
+        for echo in interface_echoes:
+            fig4.add_vline(x=echo["time"] * 1e6, line_dash="dot", line_color="red")
+            fig4.add_annotation(
+                x=echo["time"] * 1e6,
+                y=max(rx_compressed_aligned),
+                text=echo["interface"],
+                showarrow=True,
+                arrowhead=2,
+                yshift=10,
+                font=dict(size=10)
             )
-    
         fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig4, use_container_width=True)
-    
+        
     # FFT
     st.markdown("### 📊 Frequency Spectrum")
     RX_FFT = np.fft.fft(rx)
