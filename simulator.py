@@ -168,42 +168,6 @@ def show_simulator():
             fig2.update_layout(title="Chirp (Freq)", xaxis_title="Frequency (MHz)", height=300)
             st.plotly_chart(fig2, use_container_width=True)
 
-    # --- SIMULATE MULTILAYER RESPONSE ---
-    st.subheader("📡 Simulated Ultrasonic Response")
-    layers = [{
-        "thickness": l["thickness"] * INCH_TO_METER,
-        "c": l["v"],
-        "rho": l["Z"] / l["v"],
-        "alpha0": l["alpha0"],
-        "n": l["n_exp"],
-        "beta": l.get("beta", 0.0),
-    } for l in config["layer_data"]]
-
-    fluid_props = {
-        "c": config["fluid_velocity"],
-        "rho": config["fluid_density"] * 1000
-    }
-
-    received_signal, time_axis, echo_metadata = simulate_multilayer_propagation(
-        chirp_signal=np.array(tx),
-        chirp_t=np.array(t_chirp),
-        fluid_props=fluid_props,
-        layers=layers,
-        gap_thickness=2.54e-3,
-        fs=config["sampling_rate"]
-    )
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=time_axis * 1e6, y=received_signal, name="Received Signal"))
-    for echo in echo_metadata:
-        fig.add_vline(x=echo["time"] * 1e6, line=dict(color="red", dash="dot"),
-                      annotation_text=echo["interface"], annotation_position="top right")
-    fig.update_layout(title="Simulated A-scan", xaxis_title="Time (µs)", height=400)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # --- METADATA TABLE ---
-    st.subheader("🧾 Echo Metadata")
-    st.dataframe(pd.DataFrame(echo_metadata), use_container_width=True)
 
     # --- SAVE / LOAD CONFIG ---
     st.subheader("💾 Save / Load Configuration")
