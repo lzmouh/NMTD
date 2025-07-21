@@ -15,7 +15,7 @@ if "config" not in st.session_state or not st.session_state["config_loaded"]:
 
 def show_simulator():
     # --- SESSION INIT ---
-    
+
     config = st.session_state["config"]
 
     # --- SIDEBAR SETUP ---
@@ -173,7 +173,10 @@ def show_simulator():
             fig2.update_layout(title="Chirp (Freq)", xaxis_title="Frequency (MHz)", height=300)
             st.plotly_chart(fig2, use_container_width=True)
 
-
+    # --- Save to session ---
+    st.session_state["config"] = config
+    st.session_state["config_loaded"] = True
+    
     # --- SAVE / LOAD CONFIG ---
     st.subheader("💾 Save / Load Configuration")
     c1, c2, c3 = st.columns(3)
