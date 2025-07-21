@@ -59,7 +59,7 @@ def matched_filter_compress(rx, tx):
 
 def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
     """
-    Generate a linear chirp signal for transmission.
+    Generate a linear chirp signal for transmission with tapering.
 
     Parameters:
     - fs: Sampling rate in Hz
@@ -69,13 +69,24 @@ def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
 
     Returns:
     - t: Time axis (seconds)
-    - tx: Chirp signal
+    - tx: Tapered chirp signal
     """
+    # Convert units
     duration = sweep_us * 1e-6
     f_start = f_start_mhz * 1e6
     f_end = f_end_mhz * 1e6
-    t = np.linspace(0, duration, int(fs * duration), endpoint=False)
+
+    # Time vector
+    N = int(fs * duration)
+    t = np.linspace(0, duration, N, endpoint=False)
+
+    # Generate linear chirp
     tx = chirp(t, f0=f_start, f1=f_end, t1=duration, method='linear')
+
+    # Apply Hann window taper
+    window = windows.hann(N)
+    tx = tx * window
+
     return t, tx
 
 def acoustic_impedance(rho, c):
