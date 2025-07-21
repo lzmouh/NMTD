@@ -277,14 +277,14 @@ def simulate_multilayer_propagation(
     for i, layer in enumerate(layers):
         thickness = layer['thickness']                # m
         c = layer['c']                                # m/s
-        #rho = layer['rho'] * 1000                     # g/cc → kg/m³
+        rho = layer['rho'] # * 1000                     # g/cc → kg/m³
         alpha0 = layer['alpha0']                      # Np/m at 1 MHz
         n = layer['n']                                # frequency exponent
         beta = layer.get('beta', 0.0)                 # s²/m
 
         # Acoustic impedance
-        #Z_layer = acoustic_impedance(rho, c)          # Rayl
-        Z_layer = layer['Z'] * 1e6  # MRayl → Rayl
+        Z_layer = acoustic_impedance(rho, c)          # Rayl
+        #Z_layer = layer['Z'] * 1e6  # MRayl → Rayl
         R, T = reflection_transmission(Z_prev, Z_layer)
 
         # FFT filters
