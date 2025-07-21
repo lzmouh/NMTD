@@ -312,8 +312,8 @@ def simulate_multilayer_propagation(
             Z1=Z_prev,
             Z2=Z_layer,
             thickness=thickness,
-            R=R,
-            T=T
+            R=None,
+            T=None
         ))
 
         # Internal reflections within this layer
@@ -358,8 +358,8 @@ def simulate_multilayer_propagation(
                 Z1=Z_prev,
                 Z2=Z_layer,
                 thickness=thickness,
-                R=R,
-                T=T
+                R=None,
+                T=None
             ))
 
         # Transmitted signal continues
