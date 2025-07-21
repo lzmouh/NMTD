@@ -152,7 +152,7 @@ def show_plots():
         df = pd.DataFrame(metadata)
         df["Time (µs)"] = (df["time"] * 1e6).round(2)
         df["Amplitude"] = df["amplitude"].round(3)
-        st.dataframe(df[["interface", "layer", "Time (µs)", "Amplitude", "Z1", "Z2", "R", "T"]],
+        st.dataframe(df[["interface", "Time (µs)", "Amplitude", "Z1", "Z2", "R", "T"]],
                      use_container_width=True, hide_index=True)
     else:
         st.info("No echoes found in this simulation.")
