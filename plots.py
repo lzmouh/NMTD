@@ -79,6 +79,7 @@ def show_plots():
     fluid_props = {
         "c": config["fluid_velocity"],
         "rho": config["fluid_density"] * 1000,
+        "Z": c * rho,    
     }
 
     # Run simulation
