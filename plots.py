@@ -100,6 +100,7 @@ def show_plots():
     rx_aligned = rx
     if align:
         gd = calculate_group_delay(tx, fs)
+        st.metric(label="Estimated Group Delay", value=f"{gd*1e6:.2f} µs")
         shift_samples = int(np.round(gd * fs))
         rx_aligned = np.roll(rx, -shift_samples)
 
