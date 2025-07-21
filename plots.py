@@ -156,3 +156,7 @@ def show_plots():
                      use_container_width=True, hide_index=True)
     else:
         st.info("No echoes found in this simulation.")
+    
+    # Save to session state
+    st.session_state["config"] = config
+    st.session_state["config_loaded"] = True
