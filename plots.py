@@ -133,7 +133,7 @@ def show_plots():
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
     
         # Annotate only entry and back-wall echoes
-        for echo in echo_metadata:
+        for echo in metadata:
             if 'Entry' in echo['interface'] or 'Back Wall' in echo['interface']:
                 t_annot = echo['time']
                 if align:
@@ -164,7 +164,7 @@ def show_plots():
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
     
-        for echo in echo_metadata:
+        for echo in metadata:
             if 'Entry' in echo['interface'] or 'Back Wall' in echo['interface']:
                 t_annot = echo['time']
                 if align:
