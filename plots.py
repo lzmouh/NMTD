@@ -45,7 +45,7 @@ def show_plots():
         with col1:
             fig_tx = go.Figure()
             fig_tx.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx))
-            fig_tx.update_layout(title="Tx Chirp (Time)", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+            fig_tx.update_layout(title="Tx Chirp (Time)", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
             st.plotly_chart(fig_tx, use_container_width=True)
 
         with col2:
@@ -53,7 +53,7 @@ def show_plots():
             freqs = np.fft.fftfreq(len(tx), d=1/fs)
             fig_fft = go.Figure()
             fig_fft.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(fft_tx[freqs > 0])))
-            fig_fft.update_layout(title="Tx Spectrum", xaxis_title="Freq (MHz)", yaxis_title="Magnitude")
+            fig_fft.update_layout(title="Tx Spectrum", xaxis_title="Freq (MHz)", yaxis_title="Magnitude", height=300)
             st.plotly_chart(fig_fft, use_container_width=True)
 
         with col3:
@@ -61,7 +61,7 @@ def show_plots():
             t_auto = (np.arange(len(auto)) - len(tx) + 1) / fs * 1e6
             fig_cor = go.Figure()
             fig_cor.add_trace(go.Scatter(x=t_auto, y=auto))
-            fig_cor.update_layout(title="Autocorrelation", xaxis_title="Time (µs)", yaxis_title="Magnitude")
+            fig_cor.update_layout(title="Autocorrelation", xaxis_title="Time (µs)", yaxis_title="Magnitude", height=300)
             st.plotly_chart(fig_cor, use_container_width=True)
 
     # Prepare layer properties
@@ -116,25 +116,25 @@ def show_plots():
     with col1:
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(x=t_us, y=rx, name="Raw"))
-        fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig1, use_container_width=True)
 
     with col2:
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
-        fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
 
     with col1:
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
-        fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig3, use_container_width=True)
 
     with col2:
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
-        fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig4, use_container_width=True)
 
     # FFT
@@ -143,7 +143,7 @@ def show_plots():
     freqs = np.fft.fftfreq(len(rx), d=1/fs)
     fig_fft_rx = go.Figure()
     fig_fft_rx.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(RX_FFT[freqs > 0])))
-    fig_fft_rx.update_layout(title="FFT of Raw Signal", xaxis_title="Freq (MHz)", yaxis_title="Magnitude")
+    fig_fft_rx.update_layout(title="FFT of Raw Signal", xaxis_title="Freq (MHz)", yaxis_title="Magnitude", height=300)
     st.plotly_chart(fig_fft_rx, use_container_width=True)
 
     # Metadata Table
