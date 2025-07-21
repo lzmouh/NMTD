@@ -10,12 +10,12 @@ from config import (
 from utils import generate_tx_chirp, simulate_multilayer_propagation
 
 def show_simulator():
-    # --- SESSION INIT ---
-    if "config" not in st.session_state:
-        st.session_state["config"] = {}
-    if "config_loaded" not in st.session_state:
-        st.session_state["config_loaded"] = False
-    
+    # --- Initialize default config if missing ---
+    if "config" not in st.session_state or not st.session_state.get("config"):
+        st.session_state["config"] = DEFAULT_CONFIG.copy()
+
+    config = st.session_state["config"]
+
     # --- SIDEBAR SETUP ---
     st.sidebar.title("Simulation Setup")
 
