@@ -9,13 +9,13 @@ from config import (
 )
 from utils import generate_tx_chirp, simulate_multilayer_propagation
 
+if "config" not in st.session_state or not st.session_state["config_loaded"]:
+    st.session_state["config"] = DEFAULT_CONFIG.copy()
+    st.session_state["config_loaded"] = False
+
 def show_simulator():
     # --- SESSION INIT ---
-    if "config_loaded" not in st.session_state:
-        st.session_state["config_loaded"] = False
-    if "config" not in st.session_state or not st.session_state["config_loaded"]:
-        st.session_state["config"] = DEFAULT_CONFIG.copy()
-
+    
     config = st.session_state["config"]
 
     # --- SIDEBAR SETUP ---
