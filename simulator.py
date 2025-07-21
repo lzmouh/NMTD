@@ -41,7 +41,7 @@ def show_simulator():
         fluid_data = FLUID_DB[fluid_name]
         config["fluid"] = fluid_data
         config["fluid_density"] = fluid_data["density"]  #g/cc
-        config["Z_fluid"] = fluid_data["Z"] / 1e6
+        config["Z_fluid"] = fluid_data["Z"]
         config["fluid_velocity"] = fluid_data["velocity"]
 
     pipe_type = st.sidebar.radio("Pipe Configuration", ["Commercial Pipe", "Custom Pipe"], index=0)
