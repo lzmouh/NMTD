@@ -9,10 +9,16 @@ from utils import (
     matched_filter_compress
 )
 
+# Ensure session config exists
+if "config" not in st.session_state:
+    st.session_state["config"] = {}
+if "config_loaded" not in st.session_state:
+    st.session_state["config_loaded"] = False
+
 def show_plots():
     st.title("Non-Metallic Tubulars Defectoscope (NMTD)")
     st.subheader("Ultrasonic Signal Processing & Visualization")
-
+    
     # Check for config
     if "config" not in st.session_state or not st.session_state["config_loaded"]:
         st.warning("⚠️ Configuration not found. Please visit the **Simulator** page first.")
