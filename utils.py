@@ -231,33 +231,50 @@ def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness
 
 
 def simulate_multilayer_propagation(
-    chirp_signal, chirp_t, fluid_props, layers, gap_thickness=2.54e-3, fs=50e6
+    chirp_signal,
+    chirp_t,
+    fluid_props,
+    layers,
+    gap_thickness=DEFAULT_GAP_INCH * INCH_TO_METER,
+    fs=50e6,
+    noise_level=0.01,
+    max_internal_reflections=2,
+    include_synthetic_transverse=True
 ):
     """
-    Simulate ultrasonic propagation through fluid gap and multilayer pipe.
+    Simulate ultrasonic propagation through fluid and multilayer structure with noise, internal echoes, and synthetic transverse mode.
 
     Parameters:
-    - chirp_signal: Time-domain excitation chirp
-    - chirp_t: Time axis for chirp
-    - fluid_props: {'c': ..., 'rho': ...}
-    - layers: List of dicts with layer properties
-    - gap_thickness: Distance from transducer to pipe (default 2.54 mm)
-    - fs: Sampling frequency
+    - chirp_signal: Tx chirp (1D array)
+    - chirp_t: Time axis of chirp (s)
+    - fluid_props: Dict with 'c' and 'rho'
+    - layers: List of dicts, each with 'c', 'rho', 'thickness', 'alpha0', 'n', 'beta'
+    - gap_thickness: Fluid gap to first layer (m)
+    - fs: Sampling frequency (Hz)
+    - noise_level: Relative amplitude of additive white noise
+    - max_internal_reflections: Number of intra-layer reflections to simulate
+    - include_synthetic_transverse: If True, adds simulated transverse echo
 
     Returns:
-    - received_signal: Composite A-scan signal
+    - received_signal: Simulated received A-scan
     - time_axis: Time array
-    - echo_metadata: List of metadata for each echo
+    - echo_metadata: List of echo metadata dicts
     """
     N = len(chirp_signal)
     time_axis = np.arange(0, 2 * N) / fs
     received_signal = np.zeros(2 * N)
     echo_metadata = []
 
+    # Fluid properties
     c_fluid = fluid_props['c']
     rho_fluid = fluid_props['rho']
     Z_prev = acoustic_impedance(rho_fluid, c_fluid)
     t_total = travel_time(gap_thickness, c_fluid)
+
+    # Estimate group delay
+    group_delay = calculate_group_delay(chirp_signal, fs)
+
+    signal_in = chirp_signal.copy()
 
     for i, layer in enumerate(layers):
         thickness = layer['thickness']
@@ -270,24 +287,23 @@ def simulate_multilayer_propagation(
         Z_layer = acoustic_impedance(rho, c)
         R, T = reflection_transmission(Z_prev, Z_layer)
 
-        # FFT frequency array
+        # FFT domain filters
         freqs = fftfreq(N, 1 / fs)
         freqs = np.abs(freqs)
-
-        # Apply attenuation and dispersion
         H_att = attenuation_filter(freqs, alpha0, n, thickness)
         H_phi = dispersion_filter(freqs, beta, thickness)
-        filtered_signal = apply_frequency_domain_filters(chirp_signal, fs, H_att, H_phi)
+        filtered = apply_frequency_domain_filters(signal_in, fs, H_att, H_phi)
 
         # Travel time through this layer
         t_layer = travel_time(thickness, c)
 
-        # Add reflection at entrance
-        echo_r = insert_echo(chirp_signal, t_total, fs, R, 2 * N)
+        # Primary reflection at interface
+        delay = t_total
+        echo_r = insert_echo(signal_in, delay, fs, R, 2 * N)
         received_signal += echo_r
 
         echo_metadata.append(build_echo_metadata(
-            time=t_total,
+            time=delay,
             interface=f'Layer {i} Entry',
             amplitude=R,
             alpha0=alpha0,
@@ -299,18 +315,65 @@ def simulate_multilayer_propagation(
             T=T
         ))
 
-        # Transmit through layer
+        # Internal reflections within this layer
+        for k in range(1, max_internal_reflections + 1):
+            delay_internal = t_total + 2 * k * t_layer
+            amp_internal = (R ** k) * (T ** 2)
+            echo_multi = insert_echo(signal_in, delay_internal, fs, amp_internal, 2 * N)
+            received_signal += echo_multi
+
+            echo_metadata.append(build_echo_metadata(
+                time=delay_internal,
+                interface=f'Layer {i} Internal Echo {k}',
+                amplitude=amp_internal,
+                alpha0=alpha0,
+                n=n,
+                Z1=Z_layer,
+                Z2=Z_layer,
+                thickness=thickness,
+                R=R,
+                T=T
+            ))
+
+        # Optional synthetic transverse mode echo
+        if include_synthetic_transverse:
+            t_trans = 1.3 * t_total
+            amp_trans = 0.3 * R
+            echo_trans = insert_echo(
+                signal_in * 0.3,
+                t_trans,
+                fs,
+                amp_trans,
+                2 * N
+            )
+            received_signal += echo_trans
+
+            echo_metadata.append(build_echo_metadata(
+                time=t_trans,
+                interface=f'Layer {i} Synthetic T-mode',
+                amplitude=amp_trans,
+                alpha0=alpha0,
+                n=n,
+                Z1=Z_prev,
+                Z2=Z_layer,
+                thickness=thickness,
+                R=R,
+                T=T
+            ))
+
+        # Transmitted signal continues
         t_total += t_layer
-        chirp_signal = filtered_signal * T
+        signal_in = filtered * T
         Z_prev = Z_layer
 
-    # Reflection from outer wall (to fluid or solid)
-    R_end = -1.0  # Full reflection if backing is solid/fluid assumed (simplified)
-    echo_back = insert_echo(chirp_signal, t_total, fs, R_end, 2 * N)
+    # Final back-wall reflection
+    R_end = -1.0  # Full reflection assumed
+    delay_back = t_total
+    echo_back = insert_echo(signal_in, delay_back, fs, R_end, 2 * N)
     received_signal += echo_back
 
     echo_metadata.append(build_echo_metadata(
-        time=t_total,
+        time=delay_back,
         interface='Back Wall',
         amplitude=R_end,
         alpha0=None,
@@ -321,5 +384,10 @@ def simulate_multilayer_propagation(
         R=R_end,
         T=None
     ))
+
+    # Add background Gaussian noise
+    if noise_level > 0:
+        noise = noise_level * np.random.normal(size=received_signal.shape)
+        received_signal += noise
 
     return received_signal, time_axis, echo_metadata
