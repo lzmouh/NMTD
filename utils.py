@@ -267,8 +267,7 @@ def simulate_multilayer_propagation(
 
     # Fluid properties
     c_fluid = fluid_props['c']                   # m/s
-    rho_fluid = fluid_props['rho'] * 1000        # g/cc → kg/m³
-    Z_prev = acoustic_impedance(rho_fluid, c_fluid)  # Rayl
+    Z_prev = fluid_props['Z'] * 1e6  # MRayl → Rayl
     t_total = travel_time(gap_thickness, c_fluid)
 
     # Estimate group delay
@@ -278,13 +277,14 @@ def simulate_multilayer_propagation(
     for i, layer in enumerate(layers):
         thickness = layer['thickness']                # m
         c = layer['c']                                # m/s
-        rho = layer['rho'] * 1000                     # g/cc → kg/m³
+        #rho = layer['rho'] * 1000                     # g/cc → kg/m³
         alpha0 = layer['alpha0']                      # Np/m at 1 MHz
         n = layer['n']                                # frequency exponent
         beta = layer.get('beta', 0.0)                 # s²/m
 
         # Acoustic impedance
-        Z_layer = acoustic_impedance(rho, c)          # Rayl
+        #Z_layer = acoustic_impedance(rho, c)          # Rayl
+        Z_layer = layer['Z'] * 1e6  # MRayl → Rayl
         R, T = reflection_transmission(Z_prev, Z_layer)
 
         # FFT filters
