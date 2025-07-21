@@ -114,7 +114,7 @@ def reflection_transmission(Z1, Z2):
     - T: Transmission coefficient
     """
     R = (Z2 - Z1) / (Z2 + Z1)
-    T = 2 * Z2 / (Z2 + Z1)
+    T = 2 * Z1 / (Z1 + Z2)  # Amplitude transmission coefficient
     return R, T
 
 
