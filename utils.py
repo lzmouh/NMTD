@@ -266,28 +266,28 @@ def simulate_multilayer_propagation(
     echo_metadata = []
 
     # Fluid properties
-    c_fluid = fluid_props['c']
-    rho_fluid = fluid_props['rho']
-    Z_prev = acoustic_impedance(rho_fluid, c_fluid)
+    c_fluid = fluid_props['c']                   # m/s
+    rho_fluid = fluid_props['rho'] * 1000        # g/cc → kg/m³
+    Z_prev = acoustic_impedance(rho_fluid, c_fluid)  # Rayl
     t_total = travel_time(gap_thickness, c_fluid)
 
     # Estimate group delay
     group_delay = calculate_group_delay(chirp_signal, fs)
-
     signal_in = chirp_signal.copy()
 
     for i, layer in enumerate(layers):
-        thickness = layer['thickness']
-        c = layer['c']
-        rho = layer['rho']
-        alpha0 = layer['alpha0']
-        n = layer['n']
-        beta = layer.get('beta', 0.0)
+        thickness = layer['thickness']                # m
+        c = layer['c']                                # m/s
+        rho = layer['rho'] * 1000                     # g/cc → kg/m³
+        alpha0 = layer['alpha0']                      # Np/m at 1 MHz
+        n = layer['n']                                # frequency exponent
+        beta = layer.get('beta', 0.0)                 # s²/m
 
-        Z_layer = acoustic_impedance(rho, c)
+        # Acoustic impedance
+        Z_layer = acoustic_impedance(rho, c)          # Rayl
         R, T = reflection_transmission(Z_prev, Z_layer)
 
-        # FFT domain filters
+        # FFT filters
         freqs = fftfreq(N, 1 / fs)
         freqs = np.abs(freqs)
         H_att = attenuation_filter(freqs, alpha0, n, thickness)
