@@ -4,24 +4,26 @@ from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
 from scipy.fft import fft, ifft, fftfreq
 from config import FLUID_DB, INCH_TO_METER, DEFAULT_GAP_INCH
 
-def generate_chirp(f_start, f_end, duration, fs):
+def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
     """
-    Generate a linear frequency-modulated chirp signal.
+    Generate a linear chirp signal for transmission.
 
     Parameters:
-    - f_start: Start frequency (Hz)
-    - f_end: End frequency (Hz)
-    - duration: Duration of the chirp (s)
-    - fs: Sampling frequency (Hz)
+    - fs: Sampling rate in Hz
+    - sweep_us: Duration in microseconds
+    - f_start_mhz: Start frequency in MHz
+    - f_end_mhz: End frequency in MHz
 
     Returns:
-    - chirp_signal: Time-domain chirp signal
-    - t: Time array
+    - t: Time axis (seconds)
+    - tx: Chirp signal
     """
-    t = np.linspace(0, duration, int(duration * fs), endpoint=False)
-    chirp_signal = chirp(t, f0=f_start, f1=f_end, t1=duration, method='linear')
-    return chirp_signal, t
-
+    duration = sweep_us * 1e-6
+    f_start = f_start_mhz * 1e6
+    f_end = f_end_mhz * 1e6
+    t = np.linspace(0, duration, int(fs * duration), endpoint=False)
+    tx = chirp(t, f0=f_start, f1=f_end, t1=duration, method='linear')
+    return t, tx
 
 def acoustic_impedance(rho, c):
     """
