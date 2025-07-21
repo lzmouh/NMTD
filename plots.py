@@ -1,116 +1,152 @@
-from utils import simulate_multimode, calculate_group_delay, bandpass_filter
+import streamlit as st
 import numpy as np
 import pandas as pd
-import streamlit as st
 import plotly.graph_objects as go
-from utils import simulate_multimode
-
+from utils import (
+    simulate_multilayer_propagation,
+    calculate_group_delay,
+    bandpass_filter,
+    matched_filter_compress
+)
 
 def show_plots():
     st.title("Non-Metallic Tubulars Defectoscope (NMTD)")
     st.subheader("Ultrasonic Signal Processing & Visualization")
 
-    if "config_loaded" not in st.session_state:
-        st.session_state["config_loaded"] = False
+    # Check for config
     if "config" not in st.session_state or not st.session_state["config_loaded"]:
         st.warning("⚠️ Configuration not found. Please visit the **Simulator** page first.")
         st.stop()
 
     config = st.session_state["config"]
 
-    # Sidebar settings
+    # Sidebar: signal processing options
     st.sidebar.header("Signal Processing")
     align = st.sidebar.checkbox("Align to Group Delay", True)
     apply_filter = st.sidebar.checkbox("Apply Bandpass Filter", False)
-    fmin = st.sidebar.number_input("Min Freq (MHz)", 0.1, 20.0, 0.5) * 1e6
-    fmax = st.sidebar.number_input("Max Freq (MHz)", 0.1, 20.0, 5.0) * 1e6
+    fmin = st.sidebar.number_input("Min Frequency (MHz)", 0.1, 20.0, 0.5) * 1e6
+    fmax = st.sidebar.number_input("Max Frequency (MHz)", 0.1, 20.0, 5.0) * 1e6
 
-    # Extract chirp
+    # Extract config
     fs = config["sampling_rate"]
     t_chirp = np.array(config["t_chirp"])
     tx = np.array(config["tx"])
-    
-    # Chirp Plots
-    with st.expander("Transmitted Chirp Signal", expanded=False):
+
+    # Chirp diagnostics
+    with st.expander("Transmitted Chirp Diagnostics", expanded=False):
         col1, col2, col3 = st.columns(3)
 
         with col1:
             fig_tx = go.Figure()
-            fig_tx.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx, name="Tx Chirp"))
-            fig_tx.update_layout(title="Tx Chirp (Time)", xaxis_title="Time (µs)",
-                                 yaxis_title="Amplitude", height=300)
+            fig_tx.add_trace(go.Scatter(x=t_chirp * 1e6, y=tx))
+            fig_tx.update_layout(title="Tx Chirp (Time)", xaxis_title="Time (µs)", yaxis_title="Amplitude")
             st.plotly_chart(fig_tx, use_container_width=True)
 
         with col2:
             fft_tx = np.fft.fft(tx)
             freqs = np.fft.fftfreq(len(tx), d=1/fs)
-            mask = freqs > 0
             fig_fft = go.Figure()
-            fig_fft.add_trace(go.Scatter(x=freqs[mask] / 1e6, y=np.abs(fft_tx[mask]), name="Spectrum"))
-            fig_fft.update_layout(title="Tx Spectrum", xaxis_title="Frequency (MHz)",
-                                  yaxis_title="Magnitude", height=300)
+            fig_fft.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(fft_tx[freqs > 0])))
+            fig_fft.update_layout(title="Tx Spectrum", xaxis_title="Freq (MHz)", yaxis_title="Magnitude")
             st.plotly_chart(fig_fft, use_container_width=True)
 
         with col3:
             auto = np.correlate(tx, tx, mode='full')
             t_auto = (np.arange(len(auto)) - len(tx) + 1) / fs * 1e6
             fig_cor = go.Figure()
-            fig_cor.add_trace(go.Scatter(x=t_auto, y=auto, name="Auto-corr"))
-            fig_cor.update_layout(title="Tx Auto Corr", xaxis_title="Time (µs)", yaxis_title="Magnitude", height=300)
+            fig_cor.add_trace(go.Scatter(x=t_auto, y=auto))
+            fig_cor.update_layout(title="Autocorrelation", xaxis_title="Time (µs)", yaxis_title="Magnitude")
             st.plotly_chart(fig_cor, use_container_width=True)
-    
-    # --- Run simulation ---
-    t, rx, df, rx_aligned, rx_compressed = simulate_multimode(config)
-    time_us = t * 1e6  # Time in µs
+
+    # Prepare layer properties
+    layers = []
+    for layer in config["layer_data"]:
+        layers.append({
+            "thickness": layer["thickness"] * 0.0254,
+            "c": layer["v"],
+            "rho": layer["Z"] / layer["v"],
+            "alpha0": layer["alpha0"],
+            "n": layer["n_exp"],
+            "beta": layer.get("beta", 0.0),
+        })
+
+    fluid_props = {
+        "c": config["fluid_velocity"],
+        "rho": config["fluid_density"] * 1000,
+    }
+
+    # Run simulation
+    rx, t, metadata = simulate_multilayer_propagation(
+        chirp_signal=tx,
+        chirp_t=t_chirp,
+        fluid_props=fluid_props,
+        layers=layers,
+        gap_thickness=2.54e-3,
+        fs=fs
+    )
+
+    # Bandpass filter
+    if apply_filter:
+        rx = bandpass_filter(rx, fs, fmin, fmax)
+
+    # Group delay alignment
+    rx_aligned = rx
+    if align:
+        gd = calculate_group_delay(tx, fs)
+        shift_samples = int(np.round(gd * fs))
+        rx_aligned = np.roll(rx, -shift_samples)
+
+    # Pulse compression
+    rx_compressed = matched_filter_compress(rx, tx)
+    rx_compressed_aligned = rx_compressed
+    if align:
+        rx_compressed_aligned = np.roll(rx_compressed, -shift_samples)
+
+    t_us = t * 1e6
 
     st.subheader("📈 Ultrasonic Signal Outputs")
     col1, col2 = st.columns(2)
 
-    # --- Plot 1: Raw Received Signal ---
     with col1:
-        fig_raw = go.Figure()
-        fig_raw.add_trace(go.Scatter(x=time_us, y=rx, name="Raw Rx", line=dict(color="royalblue")))
-        fig_raw.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig_raw, use_container_width=True)
+        fig1 = go.Figure()
+        fig1.add_trace(go.Scatter(x=t_us, y=rx, name="Raw"))
+        fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        st.plotly_chart(fig1, use_container_width=True)
 
-    # --- Plot 2: Aligned Signal ---
     with col2:
-        fig_aligned = go.Figure()
-        fig_aligned.add_trace(go.Scatter(x=time_us, y=rx_aligned, name="Aligned Rx", line=dict(color="seagreen")))
-        fig_aligned.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig_aligned, use_container_width=True)
+        fig2 = go.Figure()
+        fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
+        fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        st.plotly_chart(fig2, use_container_width=True)
 
-    # --- Plot 3: Pulse Compressed Signal ---
     with col1:
-        fig_compressed = go.Figure()
-        fig_compressed.add_trace(go.Scatter(x=time_us, y=rx_compressed, name="Compressed Rx", line=dict(color="firebrick")))
-        fig_compressed.update_layout(title="Pulse Compressed Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig_compressed, use_container_width=True)
+        fig3 = go.Figure()
+        fig3.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
+        fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        st.plotly_chart(fig3, use_container_width=True)
 
-    # --- Plot 4: Aligned Pulse Compressed Signal ---
     with col2:
-        fig_compressed_aligned = go.Figure()
-        fig_compressed_aligned.add_trace(go.Scatter(x=time_us, y=rx_compressed_aligned, name="Aligned Compressed Rx", line=dict(color="darkorange")))
-        fig_compressed_aligned.update_layout(title="Aligned Compressed Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig_compressed_aligned, use_container_width=True)
+        fig4 = go.Figure()
+        fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
+        fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude")
+        st.plotly_chart(fig4, use_container_width=True)
 
-    # --- Frequency Spectrum Plot ---
+    # FFT
     st.markdown("### 📊 Frequency Spectrum")
-    freqs = np.fft.fftfreq(len(rx), d=1/config["sampling_rate"])
     RX_FFT = np.fft.fft(rx)
-    fig_fft = go.Figure()
-    fig_fft.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(RX_FFT[freqs > 0]), name="FFT"))
-    fig_fft.update_layout(title="FFT of Raw Signal", xaxis_title="Frequency (MHz)", yaxis_title="Magnitude", height=300)
-    st.plotly_chart(fig_fft, use_container_width=True)
+    freqs = np.fft.fftfreq(len(rx), d=1/fs)
+    fig_fft_rx = go.Figure()
+    fig_fft_rx.add_trace(go.Scatter(x=freqs[freqs > 0] / 1e6, y=np.abs(RX_FFT[freqs > 0])))
+    fig_fft_rx.update_layout(title="FFT of Raw Signal", xaxis_title="Freq (MHz)", yaxis_title="Magnitude")
+    st.plotly_chart(fig_fft_rx, use_container_width=True)
 
-    # --- Direct Arrivals Table ---
-    st.markdown("### 🧭 Direct Echoes at Layer Interfaces")
-    if not df.empty and "IsDirect" in df.columns:
-        df_direct = df[df["IsDirect"] == True].copy()
-        df_direct["Time (µs)"] = (df_direct["time"] * 1e6).round(2)
-        df_direct["Amplitude"] = df_direct["amplitude"].round(3)
-        df_show = df_direct[["mode", "layer", "echo_type", "Time (µs)", "Amplitude"]]
-        df_show = df_show.rename(columns={"mode": "Mode", "layer": "Layer", "echo_type": "Type"})
-        st.dataframe(df_show, use_container_width=True, hide_index=True)
+    # Metadata Table
+    st.markdown("### 🧾 Echo Metadata")
+    if metadata:
+        df = pd.DataFrame(metadata)
+        df["Time (µs)"] = (df["time"] * 1e6).round(2)
+        df["Amplitude"] = df["amplitude"].round(3)
+        st.dataframe(df[["interface", "layer", "Time (µs)", "Amplitude", "Z1", "Z2", "R", "T"]],
+                     use_container_width=True, hide_index=True)
     else:
-        st.info("No direct echoes were identified in this simulation.")
+        st.info("No echoes found in this simulation.")
