@@ -382,7 +382,7 @@ def simulate_multilayer_propagation(
         alpha0=None,
         n=None,
         Z1=Z_prev,
-        Z2=Z_fluid,
+        Z2=Z_fluid / 1e6,
         thickness=None,
         R=R_end,
         T=T_end
