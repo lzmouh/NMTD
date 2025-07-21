@@ -15,11 +15,12 @@ def calculate_group_delay(tx, fs):
     Returns:
         float: Group delay in seconds
     """
-    corr = np.correlate(tx, tx, mode='full')
-    peak_index = np.argmax(corr)
-    delay_samples = peak_index - len(tx) + 1
-    return delay_samples / fs
 
+    energy = np.abs(tx) ** 2
+    center_index = np.sum(np.arange(len(tx)) * energy) / np.sum(energy)
+    delay_samples = int(np.round(center_index))
+    return delay_samples / fs
+    
 def bandpass_filter(signal, fs, fmin, fmax, order=4):
     """
     Apply zero-phase Butterworth bandpass filter to a signal.
