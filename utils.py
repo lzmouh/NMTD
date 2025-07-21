@@ -269,7 +269,7 @@ def simulate_multilayer_propagation(
     # Fluid properties
     c_fluid = fluid_props['c']                   # m/s
     Z_prev = fluid_props['Z']
-    t_total = travel_time(gap_thickness, c_fluid)
+    t_total = 2 * travel_time(gap_thickness, c_fluid)
 
     # Estimate group delay
     group_delay = calculate_group_delay(chirp_signal, fs)
