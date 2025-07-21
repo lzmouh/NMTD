@@ -114,30 +114,56 @@ def show_plots():
     st.subheader("📈 Ultrasonic Signal Outputs")
     col1, col2 = st.columns(2)
 
+    # Plot 1: Raw Received
     with col1:
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(x=t_us, y=rx, name="Raw"))
         fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig1, use_container_width=True)
-
+    
+    # Plot 2: Aligned Signal with annotations
     with col2:
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
+    
+        for echo in echo_metadata:
+            t_echo_us = echo['time'] * 1e6
+            fig2.add_vline(
+                x=t_echo_us,
+                line=dict(color="red", width=1, dash="dash"),
+                annotation_text=echo["interface"],
+                annotation_position="top left",
+                annotation_font_size=10
+            )
+    
         fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
-
+    
+    # Plot 3: Pulse Compressed (unannotated)
     with col1:
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
         fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig3, use_container_width=True)
-
+    
+    # Plot 4: Aligned Compressed with annotations
     with col2:
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
+    
+        for echo in echo_metadata:
+            t_echo_us = echo['time'] * 1e6
+            fig4.add_vline(
+                x=t_echo_us,
+                line=dict(color="green", width=1, dash="dot"),
+                annotation_text=echo["interface"],
+                annotation_position="top left",
+                annotation_font_size=10
+            )
+    
         fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig4, use_container_width=True)
-
+    
     # FFT
     st.markdown("### 📊 Frequency Spectrum")
     RX_FFT = np.fft.fft(rx)
