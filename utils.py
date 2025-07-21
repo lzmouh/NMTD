@@ -219,6 +219,7 @@ def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness
     return {
         'time': time,
         'interface': interface,
+        'layer': layer,
         'amplitude': amplitude,
         'alpha0': alpha0,
         'n': n,
