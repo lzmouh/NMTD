@@ -300,7 +300,7 @@ def simulate_multilayer_propagation(
         t_layer = travel_time(thickness, c)
 
         # Primary reflection at interface
-        delay = t_total + group_delay
+        delay = t_total
         echo_r = insert_echo(signal_in, delay, fs, R, 2 * N)
         received_signal += echo_r
 
@@ -319,7 +319,7 @@ def simulate_multilayer_propagation(
 
         # Internal reflections within this layer
         for k in range(1, max_internal_reflections + 1):
-            delay_internal = t_total + 2 * k * t_layer + group_delay
+            delay_internal = t_total + 2 * k * t_layer 
             amp_internal = (R ** k) * (T ** 2)
             echo_multi = insert_echo(signal_in, delay_internal, fs, amp_internal, 2 * N)
             received_signal += echo_multi
@@ -370,7 +370,7 @@ def simulate_multilayer_propagation(
 
     # Final back-wall reflection
     R_end = -1.0  # Full reflection assumed
-    delay_back = t_total + group_delay
+    delay_back = t_total 
     echo_back = insert_echo(signal_in, delay_back, fs, R_end, 2 * N)
     received_signal += echo_back
 
