@@ -83,10 +83,8 @@ def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
     # Generate linear chirp
     tx = chirp(t, f0=f_start, f1=f_end, t1=duration, method='linear')
 
-    # Apply Hann window taper
-    window = windows.hann(N)
-    tx = tx * window
-
+    # Apply tukey window taper
+    tx *= windows.tukey(n, alpha=0.1)
     return t, tx
 
 def acoustic_impedance(rho, c):
