@@ -121,7 +121,7 @@ def show_plots():
     interface_echoes = [e for e in metadata if "Entry" in e["interface"] or e["interface"] == "Back Wall"]
         
     # Helper: Get interface echoes
-    interface_echoes = [e for e in echo_metadata if "Entry" in e["interface"] or "Back Wall" in e["interface"]]
+    interface_echoes = [e for e in metadata if "Entry" in e["interface"] or "Back Wall" in e["interface"]]
     
     with col1:
         fig1 = go.Figure()
