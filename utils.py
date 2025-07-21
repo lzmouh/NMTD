@@ -359,7 +359,8 @@ def simulate_multilayer_propagation(
                 Z2=Z_layer,
                 thickness=thickness,
                 R=R,
-                T=T
+                T=T,
+                layer=f'Layer {i}'
             ))
 
         # Transmitted signal continues
@@ -376,6 +377,7 @@ def simulate_multilayer_propagation(
     echo_metadata.append(build_echo_metadata(
         time=delay_back,
         interface='Back Wall',
+        layer='Back Wall'
         amplitude=R_end,
         alpha0=None,
         n=None,
