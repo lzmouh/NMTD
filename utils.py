@@ -4,150 +4,258 @@ from scipy.signal import chirp, fftconvolve, butter, sosfilt, windows
 from scipy.fft import fft, ifft, fftfreq
 from config import FLUID_DB, INCH_TO_METER, DEFAULT_GAP_INCH
 
-def generate_tx_chirp(fs, sweep_us, f_start_mhz, f_end_mhz):
-    sweep_s = sweep_us * 1e-6  # Convert µs to seconds
-    f_start = f_start_mhz * 1e6
-    f_end = f_end_mhz * 1e6
+def generate_chirp(f_start, f_end, duration, fs):
+    """
+    Generate a linear frequency-modulated chirp signal.
 
-    n = int(fs * sweep_s)
-    t_chirp = np.linspace(0, sweep_s, n, endpoint=False)
-    tx = chirp(t_chirp, f0=f_start, f1=f_end, t1=sweep_s, method='linear')
-    tx *= windows.tukey(n, alpha=0.1)
-    return t_chirp, tx
+    Parameters:
+    - f_start: Start frequency (Hz)
+    - f_end: End frequency (Hz)
+    - duration: Duration of the chirp (s)
+    - fs: Sampling frequency (Hz)
 
-def calculate_group_delay(tx, fs):
-    spectrum = fft(tx)
-    freqs = fftfreq(len(tx), d=1/fs)
-    phase = np.unwrap(np.angle(spectrum))
-    dphi_df = np.gradient(phase, freqs)
-    mask = (freqs > 1e6) & (freqs < 5e6)
-    return np.mean(dphi_df[mask])
+    Returns:
+    - chirp_signal: Time-domain chirp signal
+    - t: Time array
+    """
+    t = np.linspace(0, duration, int(duration * fs), endpoint=False)
+    chirp_signal = chirp(t, f0=f_start, f1=f_end, t1=duration, method='linear')
+    return chirp_signal, t
 
-def bandpass_filter(signal, fs, fmin, fmax, order=4):
-    sos = butter(order, [fmin, fmax], btype='bandpass', fs=fs, output='sos')
-    return sosfilt(sos, signal)
 
-def simulate_multimode(config):
-    fs = config["sampling_rate"]
-    t_chirp = np.array(config["t_chirp"])
-    tx = np.array(config["tx"])
-    f0_mhz = (config["f_start_mhz"] + config["f_end_mhz"]) / 2
+def acoustic_impedance(rho, c):
+    """
+    Compute acoustic impedance Z = rho * c.
 
-    fluid_name = config["fluid"]
-    if isinstance(fluid_name, str) and fluid_name in config["FLUID_DB"]:
-        fluid = config["FLUID_DB"][fluid_name]
-    else:
-        fluid = {
-            "density": config["fluid_density"] * 1000,  # g/cc to kg/m³
-            "Z": config["Z_fluid"] * 1e6  # MRayl to Rayl
-        }
-        fluid["velocity"] = fluid["Z"] / fluid["density"]
+    Parameters:
+    - rho: Density (kg/m³)
+    - c: Speed of sound (m/s)
 
-    c_f = fluid["velocity"]
-    rho_f = fluid["density"]
-    z_f = fluid["Z"]
+    Returns:
+    - Z: Acoustic impedance
+    """
+    return rho * c
 
-    layers = config["layer_data"]
-    defect_type = config.get("defect_type", "None")
-    defect_idx = config.get("defect_layer", -1) - 1
 
-    tx_len = len(tx)
-    group_delay_s = tx_len / (2 * fs)
+def reflection_transmission(Z1, Z2):
+    """
+    Compute reflection and transmission coefficients.
 
-    gap_m = DEFAULT_GAP_INCH * INCH_TO_METER
-    depths = [gap_m]
-    for layer in layers:
-        depths.append(depths[-1] + layer["thickness"] * INCH_TO_METER)
+    Parameters:
+    - Z1: Impedance of medium 1
+    - Z2: Impedance of medium 2
 
-    modes = [(c_f, 0.0, 0.0)] + [(l["v"], l["alpha0"], l["n_exp"]) for l in layers]
+    Returns:
+    - R: Reflection coefficient
+    - T: Transmission coefficient
+    """
+    R = (Z2 - Z1) / (Z2 + Z1)
+    T = 2 * Z2 / (Z2 + Z1)
+    return R, T
 
-    max_time = 2 * depths[-1] / min([m[0] for m in modes]) + 5e-6
-    n_rx = int(fs * max_time)
-    t_rx = np.arange(n_rx) / fs
-    rx = np.zeros(n_rx)
 
-    freqs = fftfreq(len(tx), d=1 / fs)
-    P_tx = fft(tx)
+def attenuation_filter(frequencies, alpha0, n, thickness):
+    """
+    Compute attenuation filter H(f) = exp(-alpha(f) * d)
 
-    Z_prev = z_f
-    R_list, T_list = [], []
-    for layer in layers:
-        Z_curr = layer["Z"]
-        R = (Z_curr - Z_prev) / (Z_curr + Z_prev)
-        T = 1 - R**2
-        R_list.append(R)
-        T_list.append(T)
-        Z_prev = Z_curr
+    Parameters:
+    - frequencies: Frequency array (Hz)
+    - alpha0: Attenuation coefficient at 1 Hz (dB/m)
+    - n: Frequency exponent
+    - thickness: Distance in meters
 
-    records = []
+    Returns:
+    - H_att: Complex attenuation filter (magnitude only)
+    """
+    alpha_f_db = alpha0 * (frequencies ** n)
+    alpha_f_np = alpha_f_db * np.log(10) / 20  # Convert dB to Nepers
+    return np.exp(-alpha_f_np * thickness)
 
-    for m_idx, (v, alpha0, n_exp) in enumerate(modes):
-        beta = 0.05  # weak dispersion
 
-        for i, depth in enumerate(depths):
-            tau = 2 * depth / v
+def dispersion_filter(frequencies, beta, thickness):
+    """
+    Compute dispersion phase filter H_phi(f) = exp(j * beta * f^2 * d)
 
-            alpha_f = alpha0 * (np.abs(freqs) / 1e6) ** n_exp * 100
-            H = 10 ** (-alpha_f * depth / 20)
+    Parameters:
+    - frequencies: Frequency array (Hz)
+    - beta: Dispersion coefficient
+    - thickness: Distance in meters
 
-            c_disp = v * (1 + beta * (np.abs(freqs) / 1e6) ** 0.5)
-            D = np.exp(-1j * 2 * np.pi * freqs * (2 * depth / c_disp))
+    Returns:
+    - H_phi: Complex phase shift filter
+    """
+    phase_shift = beta * (frequencies ** 2) * thickness
+    return np.exp(1j * phase_shift)
 
-            P_mod = P_tx * H * D
-            echo = np.real(ifft(P_mod))
 
-            if i == 0:
-                R = -1.0
-                T = 1.0
-            else:
-                R = R_list[i - 1]
-                T = T_list[i - 1]
+def apply_frequency_domain_filters(signal_t, fs, attenuation_H, dispersion_Hphi):
+    """
+    Apply frequency-domain attenuation and dispersion to a time-domain signal.
 
-            if defect_type == "Delamination" and (i - 1) == defect_idx:
-                R *= 0.7; T *= 0.7
-            elif defect_type == "Crack" and (i - 1) == defect_idx:
-                R *= 0.5; T *= 0.5
+    Parameters:
+    - signal_t: Time-domain signal
+    - fs: Sampling frequency
+    - attenuation_H: Magnitude attenuation filter
+    - dispersion_Hphi: Complex phase dispersion filter
 
-            amp = abs(R)
-            idx_center = int(round((tau - group_delay_s) * fs))
-            half_len = len(echo) // 2
-            start = idx_center - half_len
-            end = start + len(echo)
+    Returns:
+    - signal_filtered: Time-domain filtered signal
+    """
+    N = len(signal_t)
+    freqs = fftfreq(N, 1 / fs)
+    signal_f = fft(signal_t)
+    signal_f_filtered = signal_f * attenuation_H * dispersion_Hphi
+    signal_filtered = np.real(ifft(signal_f_filtered))
+    return signal_filtered
 
-            if start >= 0 and end <= len(rx):
-                rx[start:end] += amp * echo
 
-            if i == 0:
-                layer_name = "Fluid Gap"
-                thick = DEFAULT_GAP_INCH
-                Z = z_f
-            else:
-                layer = layers[i - 1]
-                layer_name = layer["name"]
-                thick = layer["thickness"]
-                Z = layer["Z"]
+def insert_echo(signal, delay_time, fs, amplitude, total_length):
+    """
+    Insert a delayed and scaled echo into a zero-padded signal.
 
-            records.append({
-                "Mode": m_idx + 1,
-                "IsDirect": True,
-                "Layer": layer_name,
-                "Thickness (in)": round(thick, 3),
-                "Z (MRayl)": round(Z / 1e6, 3),
-                "α0": round(alpha0, 3),
-                "n exp": round(n_exp, 3),
-                "R": round(R, 3),
-                "T": round(T, 3),
-                "Time (µs)": round(tau * 1e6, 2),
-                "Amp": round(amp, 3)
-            })
+    Parameters:
+    - signal: Echo signal (1D array)
+    - delay_time: Time delay (s)
+    - fs: Sampling frequency
+    - amplitude: Scaling factor
+    - total_length: Length of output signal
 
-    df = pd.DataFrame.from_records(records)
+    Returns:
+    - output: Echo inserted in zero array
+    """
+    delay_samples = int(np.round(delay_time * fs))
+    echo = amplitude * signal
+    output = np.zeros(total_length)
+    if delay_samples + len(echo) < total_length:
+        output[delay_samples:delay_samples + len(echo)] += echo
+    return output
 
-    # Group-delay aligned
-    shift_samples = int(tx_len / 2)
-    rx_aligned = np.roll(rx, -shift_samples)
 
-    # Pulse-compressed
-    rx_compressed = fftconvolve(rx, tx[::-1], mode='same')
+def travel_time(thickness, c):
+    """
+    Compute one-way travel time through a layer.
 
-    return t_rx, rx, df, rx_aligned, rx_compressed
+    Parameters:
+    - thickness: Distance (m)
+    - c: Speed of sound (m/s)
+
+    Returns:
+    - t: Time (s)
+    """
+    return thickness / c
+
+
+def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness, R, T):
+    """
+    Build metadata dictionary for an echo.
+
+    Returns:
+    - metadata: Dictionary with echo parameters
+    """
+    return {
+        'time': time,
+        'interface': interface,
+        'amplitude': amplitude,
+        'alpha0': alpha0,
+        'n': n,
+        'Z1': Z1,
+        'Z2': Z2,
+        'thickness': thickness,
+        'R': R,
+        'T': T
+    }
+
+
+def simulate_multilayer_propagation(
+    chirp_signal, chirp_t, fluid_props, layers, gap_thickness=2.54e-3, fs=50e6
+):
+    """
+    Simulate ultrasonic propagation through fluid gap and multilayer pipe.
+
+    Parameters:
+    - chirp_signal: Time-domain excitation chirp
+    - chirp_t: Time axis for chirp
+    - fluid_props: {'c': ..., 'rho': ...}
+    - layers: List of dicts with layer properties
+    - gap_thickness: Distance from transducer to pipe (default 2.54 mm)
+    - fs: Sampling frequency
+
+    Returns:
+    - received_signal: Composite A-scan signal
+    - time_axis: Time array
+    - echo_metadata: List of metadata for each echo
+    """
+    N = len(chirp_signal)
+    time_axis = np.arange(0, 2 * N) / fs
+    received_signal = np.zeros(2 * N)
+    echo_metadata = []
+
+    c_fluid = fluid_props['c']
+    rho_fluid = fluid_props['rho']
+    Z_prev = acoustic_impedance(rho_fluid, c_fluid)
+    t_total = travel_time(gap_thickness, c_fluid)
+
+    for i, layer in enumerate(layers):
+        thickness = layer['thickness']
+        c = layer['c']
+        rho = layer['rho']
+        alpha0 = layer['alpha0']
+        n = layer['n']
+        beta = layer.get('beta', 0.0)
+
+        Z_layer = acoustic_impedance(rho, c)
+        R, T = reflection_transmission(Z_prev, Z_layer)
+
+        # FFT frequency array
+        freqs = fftfreq(N, 1 / fs)
+        freqs = np.abs(freqs)
+
+        # Apply attenuation and dispersion
+        H_att = attenuation_filter(freqs, alpha0, n, thickness)
+        H_phi = dispersion_filter(freqs, beta, thickness)
+        filtered_signal = apply_frequency_domain_filters(chirp_signal, fs, H_att, H_phi)
+
+        # Travel time through this layer
+        t_layer = travel_time(thickness, c)
+
+        # Add reflection at entrance
+        echo_r = insert_echo(chirp_signal, t_total, fs, R, 2 * N)
+        received_signal += echo_r
+
+        echo_metadata.append(build_echo_metadata(
+            time=t_total,
+            interface=f'Layer {i} Entry',
+            amplitude=R,
+            alpha0=alpha0,
+            n=n,
+            Z1=Z_prev,
+            Z2=Z_layer,
+            thickness=thickness,
+            R=R,
+            T=T
+        ))
+
+        # Transmit through layer
+        t_total += t_layer
+        chirp_signal = filtered_signal * T
+        Z_prev = Z_layer
+
+    # Reflection from outer wall (to fluid or solid)
+    R_end = -1.0  # Full reflection if backing is solid/fluid assumed (simplified)
+    echo_back = insert_echo(chirp_signal, t_total, fs, R_end, 2 * N)
+    received_signal += echo_back
+
+    echo_metadata.append(build_echo_metadata(
+        time=t_total,
+        interface='Back Wall',
+        amplitude=R_end,
+        alpha0=None,
+        n=None,
+        Z1=Z_prev,
+        Z2=None,
+        thickness=None,
+        R=R_end,
+        T=None
+    ))
+
+    return received_signal, time_axis, echo_metadata
