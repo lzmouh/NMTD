@@ -359,8 +359,8 @@ def simulate_multilayer_propagation(
                 Z1=Z_prev,
                 Z2=Z_layer,
                 thickness=thickness,
-                R=None,
-                T=None
+                R=R,
+                T=T
             ))
 
         # Transmitted signal continues
@@ -368,12 +368,13 @@ def simulate_multilayer_propagation(
         signal_in = filtered * T
         Z_prev = Z_layer
 
-    # Final back-wall reflection
-    R_end = -1.0  # Full reflection assumed
-    delay_back = t_total 
+    # Final back-wall reflection (layer-fluid interface)
+    Z_fluid = acoustic_impedance(fluid_props['rho'], fluid_props['c'])
+    R_end, T_end = reflection_transmission(Z_prev, Z_fluid)
+    delay_back = t_total
     echo_back = insert_echo(signal_in, delay_back, fs, R_end, 2 * N)
     received_signal += echo_back
-
+    
     echo_metadata.append(build_echo_metadata(
         time=delay_back,
         interface='Back Wall',
@@ -381,12 +382,11 @@ def simulate_multilayer_propagation(
         alpha0=None,
         n=None,
         Z1=Z_prev,
-        Z2=None,
+        Z2=Z_fluid,
         thickness=None,
         R=R_end,
-        T=None
+        T=T_end
     ))
-
     # Add background Gaussian noise
     if noise_level > 0:
         noise = noise_level * np.random.normal(size=received_signal.shape)
