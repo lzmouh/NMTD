@@ -211,9 +211,9 @@ def show_plots():
             "Raw Time (µs)",
             "Aligned Time (µs)",
             "amplitude",
-            "Z1 (MRayl)",
-            "Z2 (MRayl)",
-            "thickness (mm)",
+            "Z1",
+            "Z2",
+            "thickness",
             "R",
             "T"
         ]])
