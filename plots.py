@@ -82,6 +82,10 @@ def show_plots():
         "Z": config["Z_fluid"], 
     }
 
+    # Claculate group delay
+    gd = calculate_group_delay(tx, fs)
+    st.metric(label="Estimated Group Delay", value=f"{gd*1e6:.2f} µs")
+
     # Run simulation
     rx, t, metadata = simulate_multilayer_propagation(
         chirp_signal=tx,
@@ -100,8 +104,6 @@ def show_plots():
     rx_aligned = rx
     gd = 0.0
     if align:
-        gd = calculate_group_delay(tx, fs)
-        st.metric(label="Estimated Group Delay", value=f"{gd*1e6:.2f} µs")
         shift_samples = int(np.round(gd * fs))
         rx_aligned = np.roll(rx, -shift_samples)
 
