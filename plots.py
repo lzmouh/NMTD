@@ -98,6 +98,7 @@ def show_plots():
 
     # Group delay alignment
     rx_aligned = rx
+    gd = 0.0
     if align:
         gd = calculate_group_delay(tx, fs)
         st.metric(label="Estimated Group Delay", value=f"{gd*1e6:.2f} µs")
