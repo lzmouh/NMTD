@@ -132,19 +132,21 @@ def show_plots():
     with col2:
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
+        for echo in metadata:
+        if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
+            # Adjust for alignment
+            adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
+            adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
     
-        for echo in interface_echoes:
-            t_echo = echo["time"] * 1e6  # Convert s to µs
-            fig2.add_vline(x=t_echo, line=dict(color="red", dash="dot"))
-            fig2.add_annotation(
-                x=t_echo,
-                y=max(rx_aligned) * 0.8,
-                text=echo["interface"],
-                showarrow=True,
-                arrowhead=1,
-                yanchor="bottom",
-                font=dict(size=10)
-            )
+            fig2.add_trace(go.Scatter(
+                x=[adjusted_time_us],
+                y=[rx_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
+                mode="markers+text",
+                text=[echo["interface"]],
+                textposition="top center",
+                marker=dict(symbol="x", size=10, color="red"),
+                showlegend=False
+            ))
     
         fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
@@ -158,19 +160,21 @@ def show_plots():
     with col2:
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
+        for echo in metadata:
+        if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
+            # Adjust for alignment
+            adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
+            adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
     
-        for echo in interface_echoes:
-            t_echo = echo["time"] * 1e6  # Convert s to µs
-            fig4.add_vline(x=t_echo, line=dict(color="blue", dash="dot"))
-            fig4.add_annotation(
-                x=t_echo,
-                y=max(rx_compressed_aligned) * 0.8,
-                text=echo["interface"],
-                showarrow=True,
-                arrowhead=1,
-                yanchor="bottom",
-                font=dict(size=10)
-            )
+            fig4.add_trace(go.Scatter(
+                x=[adjusted_time_us],
+                y=[rx_compressed_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
+                mode="markers+text",
+                text=[echo["interface"]],
+                textposition="top center",
+                marker=dict(symbol="x", size=10, color="red"),
+                showlegend=False
+            ))
     
         fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig4, use_container_width=True)
