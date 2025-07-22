@@ -123,19 +123,36 @@ def show_plots():
     # Helper: Get interface echoes
     interface_echoes = [e for e in metadata if "Entry" in e["interface"] or "Back Wall" in e["interface"]]
     
+    # 1. Raw Received Signal
     with col1:
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(x=t_us, y=rx, name="Raw"))
-        fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig1, use_container_width=True)
     
-    with col2:
-        fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
                 t_echo_us = echo["time"] * 1e6
-                t_adj_us = t_echo_us - gd * 1e6
+                idx = np.argmin(np.abs(t_us - t_echo_us))
+                fig1.add_trace(go.Scatter(
+                    x=[t_us[idx]],
+                    y=[rx[idx]],
+                    mode="markers+text",
+                    text=[echo["interface"]],
+                    textposition="top center",
+                    marker=dict(symbol="x", size=9, color="red"),
+                    showlegend=False
+                ))
+    
+        fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+        st.plotly_chart(fig1, use_container_width=True)
+    
+    # 2. Aligned Signal
+    with col2:
+        fig2 = go.Figure()
+        fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
+    
+        for echo in metadata:
+            if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
+                t_adj_us = (echo["time"] - gd) * 1e6
                 idx = np.argmin(np.abs(t_us - t_adj_us))
                 fig2.add_trace(go.Scatter(
                     x=[t_us[idx]],
@@ -143,25 +160,43 @@ def show_plots():
                     mode="markers+text",
                     text=[echo["interface"]],
                     textposition="top center",
-                    marker=dict(symbol="x", size=10, color="red"),
+                    marker=dict(symbol="x", size=9, color="red"),
                     showlegend=False
-                ))    
+                ))
+    
         fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
     
+    # 3. Raw Compressed
     with col1:
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
-        fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig3, use_container_width=True)
     
-    with col2:
-        fig4 = go.Figure()
-        fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
                 t_echo_us = echo["time"] * 1e6
-                t_adj_us = t_echo_us - gd * 1e6
+                idx = np.argmin(np.abs(t_us - t_echo_us))
+                fig3.add_trace(go.Scatter(
+                    x=[t_us[idx]],
+                    y=[rx_compressed[idx]],
+                    mode="markers+text",
+                    text=[echo["interface"]],
+                    textposition="top center",
+                    marker=dict(symbol="x", size=9, color="green"),
+                    showlegend=False
+                ))
+    
+        fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+        st.plotly_chart(fig3, use_container_width=True)
+    
+    # 4. Aligned Compressed
+    with col2:
+        fig4 = go.Figure()
+        fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
+    
+        for echo in metadata:
+            if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
+                t_adj_us = (echo["time"] - gd) * 1e6
                 idx = np.argmin(np.abs(t_us - t_adj_us))
                 fig4.add_trace(go.Scatter(
                     x=[t_us[idx]],
@@ -169,9 +204,10 @@ def show_plots():
                     mode="markers+text",
                     text=[echo["interface"]],
                     textposition="top center",
-                    marker=dict(symbol="x", size=10, color="red"),
+                    marker=dict(symbol="x", size=9, color="green"),
                     showlegend=False
-                )) 
+                ))
+    
         fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig4, use_container_width=True)
         
