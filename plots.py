@@ -151,48 +151,21 @@ def show_plots():
         fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig1, use_container_width=True)
 
-    # 2. Pulse Compressed
+    # 2. Aligned Signal
         fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
-    
-        for echo in metadata:
-            if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_echo_us = echo["time"] * 1e6
-                fig2.add_shape(
-                    type="line",
-                    x0=t_echo_us, x1=t_echo_us,
-                    y0=0, y1=1,
-                    line=dict(color="green", dash="dash"),
-                    xref="x", yref="paper"
-                )
-                fig2.add_annotation(
-                    x=t_echo_us,
-                    y=1.02,
-                    text=echo["interface"],
-                    showarrow=False,
-                    xref="x", yref="paper",
-                    font=dict(size=10, color="green")
-                )
-    
-        fig2.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig2, use_container_width=True)
-    
-    # 3. Aligned Signal
-    with col2:
-        fig3 = go.Figure()
-        fig3.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
+        fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
     
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
                 t_adj_us = (echo["time"] - gd) * 1e6
-                fig3.add_shape(
+                fig2.add_shape(
                     type="line",
                     x0=t_adj_us, x1=t_adj_us,
                     y0=0, y1=1,
                     line=dict(color="red", dash="dash"),
                     xref="x", yref="paper"
                 )
-                fig3.add_annotation(
+                fig2.add_annotation(
                     x=t_adj_us,
                     y=1.02,
                     text=echo["interface"],
@@ -201,9 +174,36 @@ def show_plots():
                     font=dict(size=10, color="red")
                 )
     
-        fig3.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig3, use_container_width=True)
+        fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+        st.plotly_chart(fig2, use_container_width=True)
 
+    # 3. Pulse Compressed
+    with col2:
+        fig3 = go.Figure()
+        fig3.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
+    
+        for echo in metadata:
+            if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
+                t_echo_us = echo["time"] * 1e6
+                fig3.add_shape(
+                    type="line",
+                    x0=t_echo_us, x1=t_echo_us,
+                    y0=0, y1=1,
+                    line=dict(color="green", dash="dash"),
+                    xref="x", yref="paper"
+                )
+                fig3.add_annotation(
+                    x=t_echo_us,
+                    y=1.02,
+                    text=echo["interface"],
+                    showarrow=False,
+                    xref="x", yref="paper",
+                    font=dict(size=10, color="green")
+                )
+    
+        fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+        st.plotly_chart(fig3, use_container_width=True)
+        
     # 4. Aligned Compressed
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
