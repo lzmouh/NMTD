@@ -140,10 +140,10 @@ def show_plots():
 
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_us = echo["time_aligned"] * 1e6 - group_delay
-                fig2.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
+                t_aligned_us = (echo["time"] - group_delay) * 1e6 
+                fig2.add_shape(type="line", x0=t_aligned_us, x1=t_aligned_us, y0=0, y1=1,
                                line=dict(color="green", dash="dash"), xref="x", yref="paper")
-                fig2.add_annotation(x=t_us, y=1.02, text=echo["interface"],
+                fig2.add_annotation(x=t_aligned_us, y=1.02, text=echo["interface"],
                                     showarrow=False, xref="x", yref="paper", font=dict(size=10, color="green"))
 
         fig2.update_layout(title="Aligned Signal",
@@ -174,10 +174,10 @@ def show_plots():
 
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_us = echo["time_aligned"] * 1e6 - group_delay
-                fig4.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
+                t_aligned_us = (echo["time"] - group_delay) * 1e6 
+                fig4.add_shape(type="line", x0=t_aligned_us, x1=t_aligned_us, y0=0, y1=1,
                                line=dict(color="red", dash="dash"), xref="x", yref="paper")
-                fig4.add_annotation(x=t_us, y=1.02, text=echo["interface"],
+                fig4.add_annotation(x=t_aligned_us, y=1.02, text=echo["interface"],
                                     showarrow=False, xref="x", yref="paper", font=dict(size=10, color="red"))
 
         fig4.update_layout(title="Aligned Pulse Compressed",
