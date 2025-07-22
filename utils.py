@@ -211,7 +211,7 @@ def travel_time(thickness, c):
     return thickness / c
 
 
-def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness, R, T):
+def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness, R, T, gd=None):
     """
     Build metadata dictionary for an echo.
 
@@ -219,18 +219,18 @@ def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness
     - metadata: Dictionary with echo parameters
     """
     return {
-        'time': time,
-        'interface': interface,
-        'amplitude': amplitude,
-        'alpha0': alpha0,
-        'n': n,
-        'Z1': Z1,
-        'Z2': Z2,
-        'thickness': thickness,
-        'R': R,
-        'T': T
+        "interface": interface,
+        "time_raw": time,
+        "time_aligned": time - gd if gd is not None else None,
+        "amplitude": amplitude,
+        "alpha0": alpha0,
+        "n": n,
+        "Z1 (MRayl)": Z1 / 1e6 if Z1 else None,
+        "Z2 (MRayl)": Z2 / 1e6 if Z2 else None,
+        "thickness (mm)": thickness * 1000 if thickness else None,
+        "R": R,
+        "T": T
     }
-
 
 def simulate_multilayer_propagation(
     chirp_signal,
@@ -385,7 +385,8 @@ def simulate_multilayer_propagation(
         Z2=Z_fluid / 1e6,
         thickness=None,
         R=R_end,
-        T=T_end
+        T=T_end,
+        gd=gd
     ))
     # Add background Gaussian noise
     if noise_level > 0:
