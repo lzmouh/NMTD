@@ -388,8 +388,7 @@ def simulate_multilayer_propagation(
         Z2=Z_fluid / 1e6,
         thickness=None,
         R=R_end,
-        T=T_end,
-        gd=group_delay
+        T=T_end
     ))
     # Add background Gaussian noise
     if noise_level > 0:
