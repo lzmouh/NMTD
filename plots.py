@@ -51,7 +51,7 @@ def show_plots():
 
     # Sidebar: signal processing options
     st.sidebar.header("Signal Processing")
-    align = st.sidebar.checkbox("Align to Group Delay", True)
+    align = st.sidebar.checkbox("Align to Group Delay", False)
     apply_filter = st.sidebar.checkbox("Apply Bandpass Filter", False)
     fmin = st.sidebar.number_input("Min Frequency (MHz)", 0.1, 20.0, 0.5) * 1e6
     fmax = st.sidebar.number_input("Max Frequency (MHz)", 0.1, 20.0, 5.0) * 1e6
