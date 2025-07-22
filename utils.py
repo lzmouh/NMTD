@@ -210,8 +210,7 @@ def travel_time(thickness, c):
     """
     return thickness / c
 
-
-def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness, R, T, gd=None):
+def build_echo_metadata(time, time_aligned, interface, amplitude, alpha0, n, Z1, Z2, thickness, R, T):
     """
     Build metadata dictionary for an echo.
 
@@ -220,16 +219,16 @@ def build_echo_metadata(time, interface, amplitude, alpha0, n, Z1, Z2, thickness
     """
     return {
         "interface": interface,
-        "time_raw": time,
+        "time": time,
         "time_aligned": time_aligned,
         "amplitude": amplitude,
         "alpha0": alpha0,
         "n": n,
-        "Z1 (MRayl)": Z1 / 1e6 if Z1 else None,
-        "Z2 (MRayl)": Z2 / 1e6 if Z2 else None,
-        "thickness (mm)": thickness * 1000 if thickness else None,
+        "Z1": Z1,
+        "Z2": Z2,
+        "thickness": thickness,
         "R": R,
-        "T": T
+        "T": T,
     }
 
 def simulate_multilayer_propagation(
