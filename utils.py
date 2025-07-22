@@ -306,6 +306,7 @@ def simulate_multilayer_propagation(
 
         echo_metadata.append(build_echo_metadata(
             time=delay,
+            time_aligned=delay - group_delay
             interface=f'Layer {i} Entry',
             amplitude=R,
             alpha0=alpha0,
@@ -326,6 +327,7 @@ def simulate_multilayer_propagation(
 
             echo_metadata.append(build_echo_metadata(
                 time=delay_internal,
+                time_aligned=delay_internal - group_delay
                 interface=f'Layer {i} Internal Echo {k}',
                 amplitude=amp_internal,
                 alpha0=alpha0,
@@ -352,6 +354,7 @@ def simulate_multilayer_propagation(
 
             echo_metadata.append(build_echo_metadata(
                 time=t_trans,
+                time_aligned=t_trans - group_delay
                 interface=f'Layer {i} Synthetic T-mode',
                 amplitude=amp_trans,
                 alpha0=alpha0,
@@ -377,6 +380,7 @@ def simulate_multilayer_propagation(
     
     echo_metadata.append(build_echo_metadata(
         time=delay_back,
+        time_aligned=delay_back - group_delay
         interface='Back Wall',
         amplitude=R_end,
         alpha0=None,
