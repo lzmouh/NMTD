@@ -127,7 +127,7 @@ def show_plots():
         # Annotations from metadata (raw time)
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_us = echo["time_raw"] * 1e6
+                t_us = echo["time"] * 1e6
                 fig1.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
                                line=dict(color="blue", dash="dash"), xref="x", yref="paper")
                 fig1.add_annotation(x=t_us, y=1.02, text=echo["interface"],
@@ -161,7 +161,7 @@ def show_plots():
 
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_us = echo["time_raw"] * 1e6
+                t_us = echo["time"] * 1e6
                 fig3.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
                                line=dict(color="purple", dash="dash"), xref="x", yref="paper")
                 fig3.add_annotation(x=t_us, y=1.02, text=echo["interface"],
@@ -202,7 +202,7 @@ def show_plots():
     if metadata:
         df = pd.DataFrame(metadata)
         # Format time columns for clarity
-        df["Raw Time (µs)"] = (df["time_raw"] * 1e6).round(2)
+        df["Raw Time (µs)"] = (df["time"] * 1e6).round(2)
         df["Aligned Time (µs)"] = (df["time_aligned"] * 1e6).round(2)
         df["Amplitude"] = df["amplitude"].round(3)
         # Display useful columns only
