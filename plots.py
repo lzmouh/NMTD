@@ -133,20 +133,20 @@ def show_plots():
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
         for echo in metadata:
-        if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-            # Adjust for alignment
-            adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
-            adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
-    
-            fig2.add_trace(go.Scatter(
-                x=[adjusted_time_us],
-                y=[rx_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
-                mode="markers+text",
-                text=[echo["interface"]],
-                textposition="top center",
-                marker=dict(symbol="x", size=10, color="red"),
-                showlegend=False
-            ))
+            if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
+                # Adjust for alignment
+                adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
+                adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
+        
+                fig2.add_trace(go.Scatter(
+                    x=[adjusted_time_us],
+                    y=[rx_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
+                    mode="markers+text",
+                    text=[echo["interface"]],
+                    textposition="top center",
+                    marker=dict(symbol="x", size=10, color="red"),
+                    showlegend=False
+                ))
     
         fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
@@ -161,20 +161,20 @@ def show_plots():
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
         for echo in metadata:
-        if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-            # Adjust for alignment
-            adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
-            adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
-    
-            fig4.add_trace(go.Scatter(
-                x=[adjusted_time_us],
-                y=[rx_compressed_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
-                mode="markers+text",
-                text=[echo["interface"]],
-                textposition="top center",
-                marker=dict(symbol="x", size=10, color="red"),
-                showlegend=False
-            ))
+            if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
+                # Adjust for alignment
+                adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
+                adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
+        
+                fig4.add_trace(go.Scatter(
+                    x=[adjusted_time_us],
+                    y=[rx_compressed_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
+                    mode="markers+text",
+                    text=[echo["interface"]],
+                    textposition="top center",
+                    marker=dict(symbol="x", size=10, color="red"),
+                    showlegend=False
+                ))
     
         fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig4, use_container_width=True)
