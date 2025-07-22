@@ -134,7 +134,6 @@ def show_plots():
         st.plotly_chart(fig1, use_container_width=True)
 
     # ---------- ALIGNED SIGNAL ----------
-    with col2:
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(x=t * 1e6, y=rx_aligned, name="Aligned"))
 
@@ -151,7 +150,7 @@ def show_plots():
         st.plotly_chart(fig2, use_container_width=True)
 
     # ---------- COMPRESSED SIGNAL ----------
-    with col1:
+    with col2:
         fig3 = go.Figure()
         fig3.add_trace(go.Scatter(x=t * 1e6, y=rx_compressed, name="Compressed"))
 
@@ -168,7 +167,6 @@ def show_plots():
         st.plotly_chart(fig3, use_container_width=True)
 
     # ---------- ALIGNED + COMPRESSED ----------
-    with col2:
         fig4 = go.Figure()
         fig4.add_trace(go.Scatter(x=t * 1e6, y=rx_compressed_aligned, name="Aligned Compressed"))
 
