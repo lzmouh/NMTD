@@ -300,7 +300,7 @@ def simulate_multilayer_propagation(
         t_layer = travel_time(thickness, c)
 
         # Primary reflection at interface
-        delay = t_total
+        delay = 2 * t_total # 2waystime
         echo_r = insert_echo(signal_in, delay, fs, R, 2 * N)
         received_signal += echo_r
 
@@ -371,7 +371,7 @@ def simulate_multilayer_propagation(
     # Final back-wall reflection (layer-fluid interface)
     Z_fluid = acoustic_impedance(fluid_props['rho'], fluid_props['c'])
     R_end, T_end = reflection_transmission(Z_prev, Z_fluid)
-    delay_back = t_total
+    delay_back = 2 * t_total # 2waystime
     echo_back = insert_echo(signal_in, delay_back, fs, R_end, 2 * N)
     received_signal += echo_back
     
