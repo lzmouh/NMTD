@@ -28,7 +28,6 @@ def show_plots():
 
     # Sidebar: signal processing options
     st.sidebar.header("Signal Processing")
-    align = st.sidebar.checkbox("Align to Group Delay", False)
     apply_filter = st.sidebar.checkbox("Apply Bandpass Filter", False)
     fmin = st.sidebar.number_input("Min Frequency (MHz)", 0.1, 20.0, 0.5) * 1e6
     fmax = st.sidebar.number_input("Max Frequency (MHz)", 0.1, 20.0, 5.0) * 1e6
@@ -102,16 +101,13 @@ def show_plots():
 
     # Group delay alignment
     rx_aligned = rx
-    gd = 0.0
-    if align:
-        shift_samples = int(np.round(gd * fs))
-        rx_aligned = np.roll(rx, -shift_samples)
+    shift_samples = int(np.round(gd * fs))
+    rx_aligned = np.roll(rx, -shift_samples)
 
     # Pulse compression
     rx_compressed = matched_filter_compress(rx, tx)
     rx_compressed_aligned = rx_compressed
-    if align:
-        rx_compressed_aligned = np.roll(rx_compressed, -shift_samples)
+    rx_compressed_aligned = np.roll(rx_compressed, -shift_samples)
 
     # Time axis
     t = np.arange(len(rx)) / fs  # in seconds
