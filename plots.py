@@ -135,7 +135,7 @@ def show_plots():
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
                 # Adjust for alignment
-                adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
+                adjusted_time_us = echo["time"] - (group_delay * 1e6)
                 adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
         
                 fig2.add_trace(go.Scatter(
@@ -163,7 +163,7 @@ def show_plots():
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
                 # Adjust for alignment
-                adjusted_time_us = echo["Time (µs)"] - (group_delay * 1e6)
+                adjusted_time_us = echo["time"] - (group_delay * 1e6)
                 adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
         
                 fig4.add_trace(go.Scatter(
