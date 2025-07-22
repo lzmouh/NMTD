@@ -113,80 +113,80 @@ def show_plots():
     if align:
         rx_compressed_aligned = np.roll(rx_compressed, -shift_samples)
 
-    # Convert time to microseconds
-    t_us = t * 1e6
-    
+    # Time axis
+    t = np.arange(len(rx)) / fs  # in seconds
+
     st.subheader("📈 Ultrasonic Signal Outputs")
     col1, col2 = st.columns(2)
 
-    # Plot 1: Raw Received
-    # Filter for interface echoes only
-    interface_echoes = [e for e in metadata if "Entry" in e["interface"] or e["interface"] == "Back Wall"]
-        
-    # Helper: Get interface echoes
-    interface_echoes = [e for e in metadata if "Entry" in e["interface"] or "Back Wall" in e["interface"]]
-
-    # 1. Raw Received Signal
+    # ---------- RAW SIGNAL ----------
     with col1:
         fig1 = go.Figure()
-        fig1.add_trace(go.Scatter(x=t_us, y=rx, name="Raw"))
-    
+        fig1.add_trace(go.Scatter(x=t * 1e6, y=rx, name="Raw"))
+
+        # Annotations from metadata (raw time)
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_us = echo["time_raw"] * 1e6
+                t_us = echo["time"] * 1e6
                 fig1.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
-                              line=dict(color="red", dash="dash"), xref="x", yref="paper")
+                               line=dict(color="blue", dash="dash"), xref="x", yref="paper")
                 fig1.add_annotation(x=t_us, y=1.02, text=echo["interface"],
-                                   showarrow=False, xref="x", yref="paper", font=dict(size=10, color="red"))
-            
-        fig1.update_layout(title="Raw Received Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+                                    showarrow=False, xref="x", yref="paper", font=dict(size=10, color="blue"))
+
+        fig1.update_layout(title="Raw Received Signal",
+                           xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig1, use_container_width=True)
 
-    # 2. Raw Aligned Signal
+    # ---------- ALIGNED SIGNAL ----------
+    with col2:
         fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
-    
+        fig2.add_trace(go.Scatter(x=t * 1e6, y=rx_aligned, name="Aligned"))
+
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
                 t_us = echo["time_aligned"] * 1e6
                 fig2.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
-                              line=dict(color="green", dash="dash"), xref="x", yref="paper")
+                               line=dict(color="green", dash="dash"), xref="x", yref="paper")
                 fig2.add_annotation(x=t_us, y=1.02, text=echo["interface"],
-                                   showarrow=False, xref="x", yref="paper", font=dict(size=10, color="green"))
-            
-        fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+                                    showarrow=False, xref="x", yref="paper", font=dict(size=10, color="green"))
+
+        fig2.update_layout(title="Aligned Signal",
+                           xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
 
-    # 3. Pulse Compressed
-    with col2:
+    # ---------- COMPRESSED SIGNAL ----------
+    with col1:
         fig3 = go.Figure()
-        fig3.add_trace(go.Scatter(x=t_us, y=rx_compressed, name="Compressed"))
-    
+        fig3.add_trace(go.Scatter(x=t * 1e6, y=rx_compressed, name="Compressed"))
+
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_us = echo["time_raw"] * 1e6
-                fig1.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
-                              line=dict(color="red", dash="dash"), xref="x", yref="paper")
-                fig1.add_annotation(x=t_us, y=1.02, text=echo["interface"],
-                                   showarrow=False, xref="x", yref="paper", font=dict(size=10, color="red"))
-    
-        fig3.update_layout(title="Pulse Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+                t_us = echo["time"] * 1e6
+                fig3.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
+                               line=dict(color="purple", dash="dash"), xref="x", yref="paper")
+                fig3.add_annotation(x=t_us, y=1.02, text=echo["interface"],
+                                    showarrow=False, xref="x", yref="paper", font=dict(size=10, color="purple"))
+
+        fig3.update_layout(title="Pulse Compressed Signal",
+                           xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig3, use_container_width=True)
-        
-    # 4. Aligned Pulse Compressed
+
+    # ---------- ALIGNED + COMPRESSED ----------
+    with col2:
         fig4 = go.Figure()
-        fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
-    
+        fig4.add_trace(go.Scatter(x=t * 1e6, y=rx_compressed_aligned, name="Aligned Compressed"))
+
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
                 t_us = echo["time_aligned"] * 1e6
                 fig4.add_shape(type="line", x0=t_us, x1=t_us, y0=0, y1=1,
-                              line=dict(color="green", dash="dash"), xref="x", yref="paper")
+                               line=dict(color="red", dash="dash"), xref="x", yref="paper")
                 fig4.add_annotation(x=t_us, y=1.02, text=echo["interface"],
-                                   showarrow=False, xref="x", yref="paper", font=dict(size=10, color="green"))
-        
-        fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
-        st.plotly_chart(fig4, use_container_width=True)    
+                                    showarrow=False, xref="x", yref="paper", font=dict(size=10, color="red"))
+
+        fig4.update_layout(title="Aligned Pulse Compressed",
+                           xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
+        st.plotly_chart(fig4, use_container_width=True)
 
     # FFT
     st.markdown("### 📊 Frequency Spectrum")
