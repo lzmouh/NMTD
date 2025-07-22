@@ -243,10 +243,22 @@ def show_plots():
     st.markdown("### 🧾 Echo Metadata")
     if metadata:
         df = pd.DataFrame(metadata)
-        df["Time (µs)"] = (df["time"] * 1e6).round(2)
+        # Format time columns for clarity
+        df["Raw Time (µs)"] = (df["time_raw"] * 1e6).round(2)
+        df["Aligned Time (µs)"] = (df["time_aligned"] * 1e6).round(2)
         df["Amplitude"] = df["amplitude"].round(3)
-        st.dataframe(df[["interface", "Time (µs)", "Amplitude", "Z1", "Z2", "R", "T"]],
-                     use_container_width=True, hide_index=True)
+        # Display useful columns only
+        st.dataframe(df[[
+            "interface",
+            "Raw Time (µs)",
+            "Aligned Time (µs)",
+            "amplitude",
+            "Z1 (MRayl)",
+            "Z2 (MRayl)",
+            "thickness (mm)",
+            "R",
+            "T"
+        ]])
     else:
         st.info("No echoes found in this simulation.")
     
