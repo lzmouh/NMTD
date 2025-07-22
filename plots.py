@@ -134,20 +134,18 @@ def show_plots():
         fig2.add_trace(go.Scatter(x=t_us, y=rx_aligned, name="Aligned"))
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                # Adjust for alignment
-                adjusted_time_us = echo["time"] - (group_delay * 1e6)
-                adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
-        
+                t_echo_us = echo["time"] * 1e6
+                t_adj_us = t_echo_us - gd * 1e6
+                idx = np.argmin(np.abs(t_us - t_adj_us))
                 fig2.add_trace(go.Scatter(
-                    x=[adjusted_time_us],
-                    y=[rx_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
+                    x=[t_us[idx]],
+                    y=[rx_aligned[idx]],
                     mode="markers+text",
                     text=[echo["interface"]],
                     textposition="top center",
                     marker=dict(symbol="x", size=10, color="red"),
                     showlegend=False
-                ))
-    
+                ))    
         fig2.update_layout(title="Aligned Signal", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig2, use_container_width=True)
     
@@ -162,20 +160,18 @@ def show_plots():
         fig4.add_trace(go.Scatter(x=t_us, y=rx_compressed_aligned, name="Compressed Aligned"))
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                # Adjust for alignment
-                adjusted_time_us = echo["time"] - (group_delay * 1e6)
-                adjusted_time_us = np.clip(adjusted_time_us, t_us[0], t_us[-1])  # Safety
-        
+                t_echo_us = echo["time"] * 1e6
+                t_adj_us = t_echo_us - gd * 1e6
+                idx = np.argmin(np.abs(t_us - t_adj_us))
                 fig4.add_trace(go.Scatter(
-                    x=[adjusted_time_us],
-                    y=[rx_compressed_aligned[np.argmin(np.abs(t_us - adjusted_time_us))]],
+                    x=[t_us[idx]],
+                    y=[rx_compressed_aligned[idx]],
                     mode="markers+text",
                     text=[echo["interface"]],
                     textposition="top center",
                     marker=dict(symbol="x", size=10, color="red"),
                     showlegend=False
-                ))
-    
+                )) 
         fig4.update_layout(title="Aligned Compressed", xaxis_title="Time (µs)", yaxis_title="Amplitude", height=300)
         st.plotly_chart(fig4, use_container_width=True)
         
