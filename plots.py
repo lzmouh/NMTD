@@ -140,7 +140,7 @@ def show_plots():
 
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_aligned_us = (echo["time"] - group_delay) * 1e6 
+                t_aligned_us = (echo["time"] - gd) * 1e6 
                 fig2.add_shape(type="line", x0=t_aligned_us, x1=t_aligned_us, y0=0, y1=1,
                                line=dict(color="green", dash="dash"), xref="x", yref="paper")
                 fig2.add_annotation(x=t_aligned_us, y=1.02, text=echo["interface"],
@@ -174,7 +174,7 @@ def show_plots():
 
         for echo in metadata:
             if "Entry" in echo["interface"] or echo["interface"] == "Back Wall":
-                t_aligned_us = (echo["time"] - group_delay) * 1e6 
+                t_aligned_us = (echo["time"] - gd) * 1e6 
                 fig4.add_shape(type="line", x0=t_aligned_us, x1=t_aligned_us, y0=0, y1=1,
                                line=dict(color="red", dash="dash"), xref="x", yref="paper")
                 fig4.add_annotation(x=t_aligned_us, y=1.02, text=echo["interface"],
