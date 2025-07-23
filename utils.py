@@ -299,10 +299,8 @@ def simulate_multilayer_propagation(
         t_layer = travel_time(thickness, c)
 
         # Primary reflection at interface
-        delay = t_total
-        corrected_delay = delay - group_delay
-        echo_r = insert_echo(signal_in, corrected_delay, fs, amplitude, 2 * N)
-        #echo_r = insert_echo(signal_in, delay, fs, R, 2 * N)
+        delay = t_total - group_delay
+        echo_r = insert_echo(signal_in, delay, fs, R, 2 * N)
         received_signal += echo_r
 
         echo_metadata.append(build_echo_metadata(
