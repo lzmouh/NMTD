@@ -300,12 +300,14 @@ def simulate_multilayer_propagation(
 
         # Primary reflection at interface
         delay = t_total
-        echo_r = insert_echo(signal_in, delay, fs, R, 2 * N)
+        corrected_delay = delay - group_delay
+        echo_r = insert_echo(signal_in, corrected_delay, fs, amplitude, 2 * N)
+        #echo_r = insert_echo(signal_in, delay, fs, R, 2 * N)
         received_signal += echo_r
 
         echo_metadata.append(build_echo_metadata(
             time=delay,
-            time_aligned=delay - group_delay,
+            time_aligned=delay,
             interface=f'Layer {i} Entry',
             amplitude=R,
             alpha0=alpha0,
@@ -319,14 +321,14 @@ def simulate_multilayer_propagation(
 
         # Internal reflections within this layer
         for k in range(1, max_internal_reflections + 1):
-            delay_internal = t_total + 2 * k * t_layer 
+            delay_internal = t_total - group_delay + 2 * k * t_layer 
             amp_internal = (R ** k) * (T ** 2)
             echo_multi = insert_echo(signal_in, delay_internal, fs, amp_internal, 2 * N)
             received_signal += echo_multi
 
             echo_metadata.append(build_echo_metadata(
                 time=delay_internal,
-                time_aligned=delay_internal - group_delay,
+                time_aligned=delay_internal,
                 interface=f'Layer {i} Internal Echo {k}',
                 amplitude=amp_internal,
                 alpha0=alpha0,
@@ -340,7 +342,7 @@ def simulate_multilayer_propagation(
 
         # Optional synthetic transverse mode echo
         if include_synthetic_transverse:
-            t_trans = 1.3 * t_total
+            t_trans = 1.3 * (t_total - group_delay)
             amp_trans = 0.3 * R
             echo_trans = insert_echo(
                 signal_in * 0.3,
@@ -353,7 +355,7 @@ def simulate_multilayer_propagation(
 
             echo_metadata.append(build_echo_metadata(
                 time=t_trans,
-                time_aligned=t_trans - group_delay,
+                time_aligned=t_trans,
                 interface=f'Layer {i} Synthetic T-mode',
                 amplitude=amp_trans,
                 alpha0=alpha0,
@@ -373,13 +375,13 @@ def simulate_multilayer_propagation(
     # Final back-wall reflection (layer-fluid interface)
     Z_fluid = acoustic_impedance(fluid_props['rho'], fluid_props['c'])
     R_end, T_end = reflection_transmission(Z_prev, Z_fluid)
-    delay_back = t_total
+    delay_back = t_total - group_delay
     echo_back = insert_echo(signal_in, delay_back, fs, R_end, 2 * N)
     received_signal += echo_back
     
     echo_metadata.append(build_echo_metadata(
         time=delay_back,
-        time_aligned=delay_back - group_delay,
+        time_aligned=delay_back,
         interface='Back Wall',
         amplitude=R_end,
         alpha0=None,
