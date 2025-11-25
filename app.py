@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-from simulator import show_simulator
+from simulator0 import show_simulator
 from plots import show_plots
 from visualization import show_visualization
 from about import show_about
